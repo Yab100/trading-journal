@@ -3,8 +3,7 @@ type StatCardProps = {
   value: string;
 };
 
-export default function StatCard({ title, value }: StatCardProps) {
-  return (
+export function StatCard({ title, value, icon: Icon, description }: StatCardProps) {  return (
     <div className="rounded-xl bg-slate-900 p-6 shadow">
       <h3 className="text-slate-400">{title}</h3>
 
