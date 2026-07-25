@@ -75,12 +75,13 @@ export function LogPsychologyDialog({ trade }: LogPsychologyDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="gap-1 text-xs">
-          <Brain className="h-3.5 w-3.5 text-purple-400" />
-          {trade.discipline_rating ? 'Edit Mindset' : 'Rate Mindset'}
-        </Button>
-      </DialogTrigger>
+        <DialogTrigger
+  render={
+    <Button size="sm">
+      Log Psychology
+    </Button>
+  }
+/>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle>Psychology Log — {trade.symbol}</DialogTitle>

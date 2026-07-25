@@ -53,15 +53,13 @@ export function CloseTradeDialog({ trade }: CloseTradeDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 font-medium"
-        >
-          Close Position
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+            <Button size="sm" variant="outline" className="h-7 text-xs">
+                Close Trade
+            </Button>
+        }
+        />
       <DialogContent className="sm:max-w-[380px]">
         <DialogHeader>
           <DialogTitle>Close {trade.symbol} ({trade.type})</DialogTitle>

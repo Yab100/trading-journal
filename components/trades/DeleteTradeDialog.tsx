@@ -38,16 +38,13 @@ export function DeleteTradeDialog({ tradeId, symbol }: DeleteTradeDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
-          title="Delete trade"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+  render={
+    <Button size="sm" variant="ghost" className="h-7 text-xs text-rose-500 hover:text-rose-600">
+      Delete
+    </Button>
+  }
+/>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Delete Trade Record?</DialogTitle>
