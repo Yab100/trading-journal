@@ -1,13 +1,86 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["public"]
+}
+
+model Profile {
+  id         String         @id
+  username   String?
+  createdAt  DateTime       @default(now())
+  journals   JournalEntry[]
+  strategies Strategy[]
+  trades     Trade[]
+
+  @@schema("public")
+}
+
+model Trade {
+  id                String         @id @default(uuid())
+  userId            String
+  symbol            String
+  direction         TradeDirection
+  entryPrice        Float
+  exitPrice         Float?
+  stopLoss          Float
+  takeProfit        Float?
+  quantity          Float
+  profitLoss        Float?
+  status            TradeStatus    @default(OPEN)
+  entryDate         DateTime       @default(now())
+  exitDate          DateTime?
+  notes             String?
+  strategyId        String?
+  createdAt         DateTime       @default(now())
+  riskReward        Float?
+  discipline_rating Int?
+  execution_rating  Int?
+  emotions          String[]       @default([])
+  strategy          Strategy?      @relation(fields: [strategyId], references: [id])
+  user              Profile        @relation(fields: [userId], references: [id])
+
+  @@schema("public")
+}
+
+model Strategy {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  user        Profile  @relation(fields: [userId], references: [id])
+  trades      Trade[]
+
+  @@schema("public")
+}
+
+model JournalEntry {
+  id      String   @id @default(uuid())
+  userId  String
+  title   String
+  content String
+  date    DateTime @default(now())
+  user    Profile  @relation(fields: [userId], references: [id])
+
+  @@schema("public")
+}
+
+enum TradeDirection {
+  LONG
+  SHORT
+
+  @@schema("public")
+}
+
+enum TradeStatus {
+  OPEN
+  WIN
+  LOSS
+  BREAKEVEN
+  CLOSED
+
+  @@schema("public")
 }

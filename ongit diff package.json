@@ -1,0 +1,30 @@
+warning: in the working copy of 'components/ui/button.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ui/dialog.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ui/sheet.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ui/sidebar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'prisma.config.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'prisma/schema.prisma', LF will be replaced by CRLF the next time Git touches it
+ app/(dashboard)/analytics/page.tsx            |   10 [32m+[m[31m-[m
+ app/(dashboard)/calendar/page.tsx             |    8 [32m+[m[31m-[m
+ app/(dashboard)/psychology/page.tsx           |   91 [32m+[m[31m-[m
+ app/(dashboard)/trades/new/page.tsx           |    2 [32m+[m[31m-[m
+ app/(dashboard)/trades/page.tsx               |  482 [32m++++[m[31m--[m
+ components/dashboard/StatCard.tsx             |   15 [32m+[m[31m-[m
+ components/psychology/LogPsychologyDialog.tsx |   10 [32m+[m[31m-[m
+ components/trades/CloseTradeDialog.tsx        |   34 [32m+[m[31m-[m
+ components/trades/DeleteTradeDialog.tsx       |   12 [32m+[m[31m-[m
+ components/trades/TradeForm.tsx               |  300 [32m++[m[31m--[m
+ components/ui/button.tsx                      |  103 [32m+[m[31m-[m
+ components/ui/dialog.tsx                      |   61 [32m+[m[31m-[m
+ components/ui/sheet.tsx                       |   22 [32m+[m[31m-[m
+ components/ui/sidebar.tsx                     |    2 [32m+[m[31m-[m
+ lib/actions/psychology.ts                     |   38 [32m+[m[31m-[m
+ lib/actions/trades.ts                         |  420 [32m++[m[31m---[m
+ lib/supabase/server.ts                        |   45 [32m+[m[31m-[m
+ package-lock.json                             | 2178 [32m++++++++++++++++++++++++[m[31m-[m
+ package.json                                  |    6 [32m+[m
+ prisma.config.ts                              |   12 [32m+[m[31m-[m
+ prisma/schema.prisma                          |   87 [32m+[m[31m-[m
+ 21 files changed, 3230 insertions(+), 708 deletions(-)

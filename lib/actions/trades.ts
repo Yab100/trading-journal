@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 export type CreateTradeInput = {
@@ -17,51 +17,83 @@ export type CreateTradeInput = {
   status?: 'OPEN' | 'CLOSED' | 'CANCELLED'
 }
 
+function mapTradeRecord(trade: {
+  id: string
+  symbol: string
+  direction: 'LONG' | 'SHORT'
+  entryPrice: number
+  exitPrice: number | null
+  stopLoss: number
+  takeProfit: number | null
+  quantity: number
+  profitLoss: number | null
+  status: 'OPEN' | 'WIN' | 'LOSS' | 'BREAKEVEN' | 'CLOSED'
+  entryDate: Date
+  exitDate: Date | null
+  notes: string | null
+  riskReward: number | null
+  discipline_rating: number | null
+  execution_rating: number | null
+  emotions: string[]
+  createdAt: Date
+}) {
+  const type = trade.direction === 'LONG' ? 'BUY' : 'SELL'
+  const status = trade.status === 'OPEN' ? 'OPEN' : trade.status === 'CLOSED' ? 'CLOSED' : 'CLOSED'
+  const pnl = trade.profitLoss ?? trade.status === 'WIN' ? 0 : undefined
+
+  return {
+    id: trade.id,
+    symbol: trade.symbol,
+    type,
+    entry_price: trade.entryPrice,
+    exit_price: trade.exitPrice ?? undefined,
+    stop_loss: trade.stopLoss,
+    take_profit: trade.takeProfit ?? undefined,
+    lot_size: trade.quantity,
+    pnl: trade.profitLoss ?? undefined,
+    setup: trade.notes ?? undefined,
+    status,
+    risk_reward: trade.riskReward ?? undefined,
+    created_at: trade.createdAt.toISOString(),
+    closed_at: trade.exitDate?.toISOString() ?? null,
+    discipline_rating: trade.discipline_rating ?? undefined,
+    execution_rating: trade.execution_rating ?? undefined,
+    emotions: trade.emotions ?? [],
+    notes: trade.notes ?? undefined,
+  }
+}
+
 /**
  * Server Action to insert a new trade into Supabase
  */
 export async function createTrade(input: CreateTradeInput) {
   try {
-    const supabase = await createClient()
+    const riskReward = input.take_profit && input.stop_loss && input.entry_price
+      ? Number((Math.abs(input.take_profit - input.entry_price) / Math.abs(input.entry_price - input.stop_loss)).toFixed(2))
+      : undefined
 
-    // Get current logged-in user (optional if auth is enabled)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const trade = await prisma.trade.create({
+      data: {
+        userId: '30642e34-91c1-43f0-9018-781462dc215c',
+        symbol: input.symbol,
+        direction: input.type === 'BUY' ? 'LONG' : 'SHORT',
+        entryPrice: input.entry_price,
+        exitPrice: input.exit_price ?? null,
+        stopLoss: input.stop_loss,
+        takeProfit: input.take_profit ?? null,
+        quantity: input.lot_size,
+        profitLoss: input.pnl ?? null,
+        status: input.status === 'CLOSED' ? 'CLOSED' : input.status === 'CANCELLED' ? 'CLOSED' : 'OPEN',
+        notes: input.setup ?? null,
+        riskReward,
+        discipline_rating: input.psychology_rating ?? null,
+      },
+    })
 
-    // Calculate Risk:Reward ratio if TP and SL are provided
-    let riskReward: number | undefined = undefined
-    if (input.take_profit && input.stop_loss && input.entry_price) {
-      const risk = Math.abs(input.entry_price - input.stop_loss)
-      const reward = Math.abs(input.take_profit - input.entry_price)
-      if (risk > 0) {
-        riskReward = Number((reward / risk).toFixed(2))
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('trades')
-      .insert([
-        {
-          ...input,
-          user_id: user?.id ?? null, // Attaches trade to user if authenticated
-          risk_reward: riskReward,
-          status: input.status || (input.exit_price ? 'CLOSED' : 'OPEN'),
-        },
-      ])
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Supabase Insert Error:', error.message)
-      return { success: false, error: error.message }
-    }
-
-    // Refresh pages that display trades so new data shows immediately
     revalidatePath('/trades')
     revalidatePath('/')
 
-    return { success: true, data }
+    return { success: true, data: mapTradeRecord(trade) }
   } catch (err) {
     console.error('Server Action Error:', err)
     return { success: false, error: 'Failed to save trade.' }
@@ -72,59 +104,31 @@ export async function createTrade(input: CreateTradeInput) {
  * Server Action to fetch all trades from Supabase
  */
 export async function getTrades() {
-  const supabase = await createClient()
+  const trades = await prisma.trade.findMany({
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
 
-  const { data, error } = await supabase
-    .from('trades')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Supabase Fetch Error:', error.message)
-    return []
-  }
-
-  return data ?? []
+  return trades.map(mapTradeRecord)
 }
 
 /**
  * Server Action to compute aggregate analytics for dashboard StatCards
  */
 export async function getDashboardStats() {
-  const supabase = await createClient()
+  const trades = await prisma.trade.findMany()
 
-  const { data: trades, error } = await supabase
-    .from('trades')
-    .select('*')
+  const mappedTrades = trades.map(mapTradeRecord)
 
-  if (error || !trades) {
-    return {
-      totalTrades: 0,
-      openTrades: 0,
-      closedTradesCount: 0,
-      winningTrades: 0,
-      totalPnl: 0,
-      winRate: 0,
-      avgRiskReward: 0,
-    }
-  }
-
-  const totalTrades = trades.length
-  const openTrades = trades.filter((t) => t.status === 'OPEN').length
-  
-  // Consider closed trades or trades that have a recorded PnL
-  const closedTrades = trades.filter((t) => t.status === 'CLOSED' || t.pnl !== null)
+  const totalTrades = mappedTrades.length
+  const openTrades = mappedTrades.filter((t) => t.status === 'OPEN').length
+  const closedTrades = mappedTrades.filter((t) => t.status === 'CLOSED' || t.pnl !== undefined)
   const closedTradesCount = closedTrades.length
-
-  // Calculate Net P&L across closed positions
   const totalPnl = closedTrades.reduce((acc, trade) => acc + (Number(trade.pnl) || 0), 0)
-
-  // Calculate Win Rate percentage
   const winningTrades = closedTrades.filter((trade) => (Number(trade.pnl) || 0) > 0).length
   const winRate = closedTradesCount > 0 ? (winningTrades / closedTradesCount) * 100 : 0
-
-  // Calculate Average Risk:Reward ratio
-  const tradesWithRR = trades.filter((t) => t.risk_reward !== null && t.risk_reward !== undefined)
+  const tradesWithRR = mappedTrades.filter((t) => t.risk_reward !== undefined)
   const avgRiskReward =
     tradesWithRR.length > 0
       ? tradesWithRR.reduce((acc, t) => acc + Number(t.risk_reward), 0) / tradesWithRR.length
@@ -145,21 +149,14 @@ export async function getDashboardStats() {
  * Server Action to calculate cumulative equity curve points
  */
 export async function getEquityCurveData() {
-  const supabase = await createClient()
+  const trades = await prisma.trade.findMany()
 
-  const { data: trades, error } = await supabase
-    .from('trades')
-    .select('created_at, closed_at, pnl, symbol')
-    .not('pnl', 'is', null)
-    .order('created_at', { ascending: true })
-
-  if (error || !trades || trades.length === 0) {
+  if (trades.length === 0) {
     return []
   }
 
   let runningPnl = 0
 
-  // Base starting point at $0
   const points = [
     {
       date: 'Start',
@@ -170,10 +167,10 @@ export async function getEquityCurveData() {
   ]
 
   trades.forEach((trade) => {
-    const pnlVal = Number(trade.pnl) || 0
+    const pnlVal = Number(trade.profitLoss) || 0
     runningPnl += pnlVal
 
-    const dateFormatted = new Date(trade.closed_at || trade.created_at).toLocaleDateString('en-US', {
+    const dateFormatted = new Date(trade.exitDate || trade.entryDate).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     })
@@ -200,54 +197,40 @@ export type CloseTradeInput = {
  */
 export async function closeTrade(input: CloseTradeInput) {
   try {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from('trades')
-      .update({
-        exit_price: input.exit_price,
-        pnl: input.pnl,
+    const trade = await prisma.trade.update({
+      where: {
+        id: input.tradeId,
+      },
+      data: {
+        exitPrice: input.exit_price,
+        profitLoss: input.pnl,
         status: 'CLOSED',
-        closed_at: new Date().toISOString(),
-      })
-      .eq('id', input.tradeId)
-      .select()
-      .single()
+        exitDate: new Date(),
+      },
+    })
 
-    if (error) {
-      console.error('Supabase Close Trade Error:', error.message)
-      return { success: false, error: error.message }
-    }
-
-    // Refresh pages that display trades and stats
     revalidatePath('/trades')
     revalidatePath('/')
 
-    return { success: true, data }
+    return { success: true, data: mapTradeRecord(trade) }
   } catch (err) {
     console.error('Server Action Error:', err)
     return { success: false, error: 'Failed to close trade.' }
   }
 }
 
+
 /**
  * Server Action to delete a trade record by ID
  */
 export async function deleteTrade(tradeId: string) {
   try {
-    const supabase = await createClient()
+    await prisma.trade.delete({
+      where: {
+        id: tradeId,
+      },
+    })
 
-    const { error } = await supabase
-      .from('trades')
-      .delete()
-      .eq('id', tradeId)
-
-    if (error) {
-      console.error('Supabase Delete Trade Error:', error.message)
-      return { success: false, error: error.message }
-    }
-
-    // Refresh cached pages so the row disappears immediately
     revalidatePath('/trades')
     revalidatePath('/')
 

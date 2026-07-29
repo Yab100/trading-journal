@@ -16,24 +16,25 @@ export const revalidate = 0
 
 export default async function PsychologyPage() {
   const trades = await getTrades()
+  console.log(JSON.stringify(trades, null, 2))
 
   // Analytics calculations
-  const tradesWithPsychology = trades.filter((t) => t.discipline_rating)
-  
+  const tradesWithPsychology = trades.filter((t) => (t as any).discipline_rating)
+
   const avgDiscipline = tradesWithPsychology.length
-    ? (tradesWithPsychology.reduce((acc, t) => acc + (t.discipline_rating || 0), 0) / tradesWithPsychology.length).toFixed(1)
+    ? (tradesWithPsychology.reduce((acc, t) => acc + ((t as any).discipline_rating || 0), 0) / tradesWithPsychology.length).toFixed(1)
     : 'N/A'
 
   const avgExecution = tradesWithPsychology.length
-    ? (tradesWithPsychology.reduce((acc, t) => acc + (t.execution_rating || 0), 0) / tradesWithPsychology.length).toFixed(1)
+    ? (tradesWithPsychology.reduce((acc, t) => acc + ((t as any).execution_rating || 0), 0) / tradesWithPsychology.length).toFixed(1)
     : 'N/A'
 
   // Compare PnL of Disciplined trades (4-5 stars) vs Low Discipline (1-2 stars)
-  const disciplinedTrades = trades.filter((t) => (t.discipline_rating || 0) >= 4)
-  const disciplinedPnL = disciplinedTrades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0)
+  const disciplinedTrades = trades.filter((t) => ((t as any).discipline_rating || 0) >= 4)
+  const disciplinedPnL = disciplinedTrades.reduce((acc, t) => acc + (Number((t as any).pnl ?? 0) || 0), 0)
 
-  const impulsiveTrades = trades.filter((t) => t.discipline_rating && t.discipline_rating <= 2)
-  const impulsivePnL = impulsiveTrades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0)
+  const impulsiveTrades = trades.filter((t) => (t as any).discipline_rating && (t as any).discipline_rating <= 2)
+  const impulsivePnL = impulsiveTrades.reduce((acc, t) => acc + (Number((t as any).pnl ?? 0) || 0), 0)
 
   return (
     <div className="p-6 space-y-6">
@@ -123,13 +124,21 @@ export default async function PsychologyPage() {
               </TableRow>
             ) : (
               trades.map((trade) => {
-                const pnlVal = Number(trade.pnl) || 0
+                const pnlVal = Number((trade as any).pnl ?? 0) || 0
                 const isWin = pnlVal > 0
 
                 return (
                   <TableRow key={trade.id}>
-                    <TableCell className="font-semibold">{trade.symbol}</TableCell>
-                    <TableCell>{trade.type}</TableCell>
+                    <TableCell>
+  <span className="font-semibold text-foreground">
+    {trade.symbol}
+  </span>
+</TableCell>
+                    <TableCell>
+  <span className="font-semibold text-foreground">
+    {trade.type}
+  </span>
+</TableCell>
                     <TableCell className="text-right font-mono font-medium">
                       {trade.status === 'OPEN' ? (
                         <span className="text-muted-foreground text-xs italic">Open</span>
@@ -141,22 +150,47 @@ export default async function PsychologyPage() {
                     </TableCell>
 
                     {/* Discipline Score */}
-                    <TableCell className="text-center">
-                      {trade.discipline_rating ? (
-                        <span className="font-mono text-sm font-bold">{trade.discipline_rating}/5</span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
+<TableCell className="text-center">
+  {(trade as any).discipline_rating !== null && (trade as any).discipline_rating !== undefined ? (
+    <span className="font-mono text-sm font-bold text-purple-400">
+      {(trade as any).discipline_rating}/5
+    </span>
+  ) : (
+    <span className="text-muted-foreground text-xs">—</span>
+  )}
+</TableCell>
 
-                    {/* Execution Rating */}
-                    <TableCell className="text-center">
-                      {trade.execution_rating ? (
-                        <span className="font-mono text-sm font-bold">{trade.execution_rating}/5</span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
+{/* Execution Rating */}
+<TableCell className="text-center">
+  {(trade as any).execution_rating !== null && (trade as any).execution_rating !== undefined ? (
+    <span className="font-mono text-sm font-bold text-blue-400">
+      {(trade as any).execution_rating}/5
+    </span>
+  ) : (
+    <span className="text-muted-foreground text-xs">—</span>
+  )}
+</TableCell>
+
+<TableCell className="text-center">
+  {trade.discipline_rating !== null && trade.discipline_rating !== undefined ? (
+    <span className="font-mono text-sm font-bold text-purple-400">
+      {trade.discipline_rating}/5
+    </span>
+  ) : (
+    <span className="text-muted-foreground text-xs">—</span>
+  )}
+</TableCell>
+
+{/* Execution Rating */}
+<TableCell className="text-center">
+  {trade.execution_rating !== null && trade.execution_rating !== undefined ? (
+    <span className="font-mono text-sm font-bold text-blue-400">
+      {trade.execution_rating}/5
+    </span>
+  ) : (
+    <span className="text-muted-foreground text-xs">—</span>
+  )}
+</TableCell>
 
                     {/* Emotions */}
                     <TableCell>

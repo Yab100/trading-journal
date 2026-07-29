@@ -1,4 +1,4 @@
-import TradeForm from "@/components/trades/TradeForm";
+import { TradeForm } from "@/components/trades/TradeForm";
 
 export default function NewTradePage() {
   return (

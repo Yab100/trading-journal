@@ -75,13 +75,12 @@ export function LogPsychologyDialog({ trade }: LogPsychologyDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger
-  render={
-    <Button size="sm">
-      Log Psychology
-    </Button>
-  }
-/>
+        <Button
+  size="sm"
+  onClick={() => setOpen(true)}
+>
+  LOG PSYCHOLOGY
+</Button>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle>Psychology Log — {trade.symbol}</DialogTitle>
