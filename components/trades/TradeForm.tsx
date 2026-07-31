@@ -4,12 +4,17 @@ import { useState, useTransition } from 'react'
 import { createTrade, CreateTradeInput } from '@/lib/actions/trades'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { getStrategies } from '@/lib/actions/strategies'
 
 interface TradeFormProps {
+  strategies: {
+    id: string
+    name: string
+  }[]
   onSuccess?: () => void
 }
 
-export function TradeForm({ onSuccess }: TradeFormProps) {
+export function TradeForm({ strategies,onSuccess }: TradeFormProps) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -17,14 +22,21 @@ export function TradeForm({ onSuccess }: TradeFormProps) {
   // Initial state for form fields
   const [formData, setFormData] = useState<Partial<CreateTradeInput>>({
     symbol: 'XAUUSD',
-    type: 'BUY',
-    lot_size: 0.1,
-    entry_price: undefined,
-    stop_loss: undefined,
-    take_profit: undefined,
-    exit_price: undefined,
-    setup: '',
-    psychology_rating: 3,
+    direction: 'LONG',
+    quantity: 0.1,
+
+    timeframe: 'M15',
+
+    entryType: 'MARKET',
+
+    entryPrice: undefined,
+    stopLoss: undefined,
+    takeProfit: undefined,
+    exitPrice: undefined,
+
+    strategyId: '',
+    notes: '',
+    disciplineRating: 3,
   })
 
   const handleChange = (
@@ -43,22 +55,30 @@ export function TradeForm({ onSuccess }: TradeFormProps) {
     setSuccess(false)
 
     // Basic validation
-    if (!formData.symbol || !formData.entry_price || !formData.stop_loss || !formData.lot_size) {
+    if (!formData.symbol || !formData.entryPrice || !formData.stopLoss || !formData.quantity) {
       setError('Please fill in all required fields (Symbol, Entry, Stop Loss, Lot Size).')
       return
     }
 
     startTransition(async () => {
+      console.log("FORM DATA", formData)
       const result = await createTrade({
         symbol: formData.symbol!,
-        type: (formData.type as 'BUY' | 'SELL') || 'BUY',
-        entry_price: Number(formData.entry_price),
-        stop_loss: Number(formData.stop_loss),
-        take_profit: formData.take_profit ? Number(formData.take_profit) : undefined,
-        exit_price: formData.exit_price ? Number(formData.exit_price) : undefined,
-        lot_size: Number(formData.lot_size),
-        setup: formData.setup || undefined,
-        psychology_rating: formData.psychology_rating ? Number(formData.psychology_rating) : undefined,
+        direction: formData.direction!,
+
+        timeframe: formData.timeframe,
+        entryType: formData.entryType!,
+
+        entryPrice: Number(formData.entryPrice),
+        stopLoss: Number(formData.stopLoss),
+        takeProfit: formData.takeProfit,
+        exitPrice: formData.exitPrice,
+        
+        quantity: Number(formData.quantity),
+        
+        strategyId: formData.strategyId || undefined,
+        notes: formData.notes,
+        disciplineRating: formData.disciplineRating,
       })
 
       if (!result.success) {
@@ -68,11 +88,11 @@ export function TradeForm({ onSuccess }: TradeFormProps) {
         // Reset prices & setup after successful submit
         setFormData((prev) => ({
           ...prev,
-          entry_price: undefined,
-          stop_loss: undefined,
-          take_profit: undefined,
-          exit_price: undefined,
-          setup: '',
+          entryPrice: undefined,
+          stopLoss: undefined,
+          takeProfit: undefined,
+          exitPrice: undefined,
+          notes: '',
         }))
 
         if (onSuccess) {
@@ -111,15 +131,37 @@ export function TradeForm({ onSuccess }: TradeFormProps) {
         <div>
           <label className="block text-xs font-medium mb-1">Direction</label>
           <select
-            name="type"
-            value={formData.type || 'BUY'}
+            name="direction"
+            value={formData.direction || 'LONG'}
             onChange={handleChange}
             className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            <option value="BUY" className="bg-background text-foreground">BUY (Long)</option>
-            <option value="SELL" className="bg-background text-foreground">SELL (Short)</option>
-          </select>
+            <option value="LONG">LONG</option>
+            <option value="SHORT">SHORT</option>
+            </select>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium mb-1">
+          Timeframe
+        </label>
+
+        <select
+          name="timeframe"
+          value={formData.timeframe || 'M15'}
+          onChange={handleChange}
+          className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+        >
+          <option value="M1">M1</option>
+          <option value="M5">M5</option>
+          <option value="M15">M15</option>
+          <option value="M30">M30</option>
+          <option value="H1">H1</option>
+          <option value="H4">H4</option>
+          <option value="D1">D1</option>
+          <option value="W1">W1</option>
+        </select>
       </div>
 
       {/* Lot Size & Entry Price */}
@@ -129,8 +171,8 @@ export function TradeForm({ onSuccess }: TradeFormProps) {
           <Input
             type="number"
             step="0.01"
-            name="lot_size"
-            value={formData.lot_size ?? ''}
+            name="quantity"
+            value={formData.quantity ?? ''}
             onChange={handleChange}
             placeholder="0.10"
             required
@@ -141,8 +183,8 @@ export function TradeForm({ onSuccess }: TradeFormProps) {
           <Input
             type="number"
             step="any"
-            name="entry_price"
-            value={formData.entry_price ?? ''}
+            name="entryPrice"
+            value={formData.entryPrice ?? ''}
             onChange={handleChange}
             placeholder="2350.50"
             required
@@ -157,8 +199,8 @@ export function TradeForm({ onSuccess }: TradeFormProps) {
           <Input
             type="number"
             step="any"
-            name="stop_loss"
-            value={formData.stop_loss ?? ''}
+            name="stopLoss"
+            value={formData.stopLoss ?? ''}
             onChange={handleChange}
             placeholder="2340.00"
             required
@@ -169,20 +211,62 @@ export function TradeForm({ onSuccess }: TradeFormProps) {
           <Input
             type="number"
             step="any"
-            name="take_profit"
-            value={formData.take_profit ?? ''}
+            name="takeProfit"
+            value={formData.takeProfit ?? ''}
             onChange={handleChange}
             placeholder="2370.00"
           />
         </div>
       </div>
 
-      {/* Setup Strategy */}
+      {/* STRATEGY */}
       <div>
-        <label className="block text-xs font-medium mb-1">Setup / Strategy (Optional)</label>
+        <label className="block text-xs font-medium mb-1">
+          Strategy
+        </label>
+
+        <select
+          name="strategyId"
+          value={formData.strategyId || ''}
+          onChange={handleChange}
+          className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+        >
+          <option value="">No Strategy</option>
+
+          {strategies.map((strategy) => (
+            <option
+              key={strategy.id}
+              value={strategy.id}
+            >
+              {strategy.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium mb-1">
+          Entry Type
+        </label>
+
+        <select
+          name="entryType"
+          value={formData.entryType || 'MARKET'}
+          onChange={handleChange}
+          className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+        >
+          <option value="MARKET">Break of current H/L</option>
+          <option value="LIMIT">Break of previous H/L</option>
+          <option value="STOP">Flip</option>
+        </select>
+</div>
+
+      {/* NOTES */}
+      <div>
+                <label className="block text-xs font-medium mb-1">Setup / Strategy (Optional)</label>
         <Input
-          name="setup"
-          value={formData.setup || ''}
+          name="notes"
+          value={formData.notes || ''}
           onChange={handleChange}
           placeholder="e.g. Liquidity Sweep, Fair Value Gap"
         />

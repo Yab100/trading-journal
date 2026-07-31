@@ -4,6 +4,7 @@ import { CloseTradeDialog } from '@/components/trades/CloseTradeDialog'
 import { DeleteTradeDialog } from '@/components/trades/DeleteTradeDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { getStrategies } from '@/lib/actions/strategies'
 import {
   Table,
   TableBody,
@@ -25,6 +26,7 @@ export const revalidate = 0
 
 export default async function TradesPage() {
   const trades = await getTrades()
+const strategies = await getStrategies()
 
   return (
     <div className="p-6 space-y-6">
@@ -51,7 +53,7 @@ export default async function TradesPage() {
               <DialogTitle>Log a New Trade</DialogTitle>
             </DialogHeader>
             <div className="pt-4">
-              <TradeForm />
+              <TradeForm strategies={strategies} />
             </div>
           </DialogContent>
         </Dialog>
@@ -63,7 +65,10 @@ export default async function TradesPage() {
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Symbol</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>Direction</TableHead>
+              <TableHead>Timeframe</TableHead>
+              <TableHead>Strategy</TableHead>
+              <TableHead>Entry Type</TableHead>
               <TableHead className="text-right">Lot Size</TableHead>
               <TableHead className="text-right">Entry</TableHead>
               <TableHead className="text-right">Exit</TableHead>
@@ -101,7 +106,7 @@ export default async function TradesPage() {
                     <TableCell className="font-medium text-xs text-muted-foreground">
                       {formattedDate}
                     </TableCell>
-                    <TableCell className="font-semibold">{trade.symbol}</TableCell>
+                    <TableCell className="font-semibold text-white">  {trade.symbol}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
@@ -114,6 +119,9 @@ export default async function TradesPage() {
                         {trade.type}
                       </Badge>
                     </TableCell>
+                    <TableCell>{trade.timeframe ?? "-"}</TableCell>
+                    <TableCell>{trade.strategy ?? "-"}</TableCell>
+                    <TableCell>{trade.entrytype ?? "-"}</TableCell>
                     <TableCell className="text-right font-mono">{trade.lot_size}</TableCell>
                     <TableCell className="text-right font-mono">{trade.entry_price}</TableCell>
                     <TableCell className="text-right font-mono text-muted-foreground">

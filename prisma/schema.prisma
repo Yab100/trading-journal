@@ -19,40 +19,63 @@ model Profile {
 }
 
 model Trade {
-  id                String         @id @default(uuid())
-  userId            String
-  symbol            String
-  direction         TradeDirection
-  entryPrice        Float
-  exitPrice         Float?
-  stopLoss          Float
-  takeProfit        Float?
-  quantity          Float
-  profitLoss        Float?
-  status            TradeStatus    @default(OPEN)
-  entryDate         DateTime       @default(now())
-  exitDate          DateTime?
-  notes             String?
-  strategyId        String?
-  createdAt         DateTime       @default(now())
-  riskReward        Float?
+  id     String @id @default(uuid())
+  userId String
+
+  symbol    String
+  market    String? // Forex, Crypto, Stocks, Futures...
+  timeframe String? // M1, M5, H1, H4...
+  session   String? // Asia, London, New York
+
+  direction TradeDirection
+  entryType EntryType? // MARKET, LIMIT, STOP, STOP_LIMIT
+
+  entryPrice Float
+  exitPrice  Float?
+
+  stopLoss   Float
+  takeProfit Float?
+
+  quantity   Float
+  riskAmount Float?
+
+  profitLoss Float?
+  riskReward Float?
+
+  status TradeStatus @default(OPEN)
+
+  entryDate DateTime  @default(now())
+  exitDate  DateTime?
+
+  notes String?
+
+  strategyId String?
+  strategy   Strategy? @relation(fields: [strategyId], references: [id])
+
   discipline_rating Int?
   execution_rating  Int?
-  emotions          String[]       @default([])
-  strategy          Strategy?      @relation(fields: [strategyId], references: [id])
-  user              Profile        @relation(fields: [userId], references: [id])
+  emotions          String[] @default([])
+
+  createdAt DateTime @default(now())
+
+  user Profile @relation(fields: [userId], references: [id])
+
+  remainingQuantity Float?
 
   @@schema("public")
 }
 
 model Strategy {
-  id          String   @id @default(uuid())
-  userId      String
+  id          String  @id @default(cuid())
   name        String
   description String?
-  createdAt   DateTime @default(now())
-  user        Profile  @relation(fields: [userId], references: [id])
-  trades      Trade[]
+
+  userId String
+  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  trades Trade[]
+
+  createdAt DateTime @default(now())
 
   @@schema("public")
 }
@@ -81,6 +104,34 @@ enum TradeStatus {
   LOSS
   BREAKEVEN
   CLOSED
+
+  @@schema("public")
+}
+
+enum Market {
+  FOREX
+  CRYPTO
+  STOCKS
+  INDICES
+  FUTURES
+
+  @@schema("public")
+}
+
+enum Session {
+  ASIA
+  LONDON
+  NEW_YORK
+  OVERLAP
+
+  @@schema("public")
+}
+
+enum EntryType {
+  MARKET
+  LIMIT
+  STOP
+  STOP_LIMIT
 
   @@schema("public")
 }

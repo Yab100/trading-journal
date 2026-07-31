@@ -2,30 +2,56 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/server'
 
 export type CreateTradeInput = {
   symbol: string
-  type: 'BUY' | 'SELL'
-  entry_price: number
-  exit_price?: number
-  stop_loss: number
-  take_profit?: number
-  lot_size: number
-  pnl?: number
-  setup?: string
-  psychology_rating?: number
-  status?: 'OPEN' | 'CLOSED' | 'CANCELLED'
+  direction: 'LONG' | 'SHORT'
+
+  market?: 'FOREX' | 'CRYPTO' | 'STOCKS' | 'INDICES' | 'FUTURES'
+  timeframe?: string
+  session?: 'ASIA' | 'LONDON' | 'NEW_YORK' | 'OVERLAP'
+  entryType?: 'MARKET' | 'LIMIT' | 'STOP' | 'STOP_LIMIT'
+
+  entryPrice: number
+  exitPrice?: number
+
+  stopLoss: number
+  takeProfit?: number
+
+  quantity: number
+  riskAmount?: number
+
+  strategyId?: string
+
+  notes?: string
+
+  disciplineRating?: number
+  executionRating?: number
+  emotions?: string[]
+
+  profitLoss?: number
 }
 
 function mapTradeRecord(trade: {
   id: string
   symbol: string
+  market: string | null
+  timeframe: string | null
   direction: 'LONG' | 'SHORT'
+  entryType: string | null
+
+  strategyId: string | null
+  strategy: {
+    name: string
+  } | null
+
   entryPrice: number
   exitPrice: number | null
   stopLoss: number
   takeProfit: number | null
   quantity: number
+
   profitLoss: number | null
   status: 'OPEN' | 'WIN' | 'LOSS' | 'BREAKEVEN' | 'CLOSED'
   entryDate: Date
@@ -39,17 +65,25 @@ function mapTradeRecord(trade: {
 }) {
   const type = trade.direction === 'LONG' ? 'BUY' : 'SELL'
   const status = trade.status === 'OPEN' ? 'OPEN' : trade.status === 'CLOSED' ? 'CLOSED' : 'CLOSED'
-  const pnl = trade.profitLoss ?? trade.status === 'WIN' ? 0 : undefined
+  const pnl =
+  trade.profitLoss ??
+  (trade.status === "WIN" ? 0 : undefined)
 
   return {
     id: trade.id,
     symbol: trade.symbol,
+    market: trade.market ?? undefined,
+    timeframe: trade.timeframe ?? undefined,
+    direction: trade.direction,
+   entrytype: trade.entryType ?? undefined,
+    strategy: trade.strategy?.name ?? undefined,
     type,
     entry_price: trade.entryPrice,
     exit_price: trade.exitPrice ?? undefined,
     stop_loss: trade.stopLoss,
     take_profit: trade.takeProfit ?? undefined,
     lot_size: trade.quantity,
+    remaining_lot_size: trade.remainingQuantity,
     pnl: trade.profitLoss ?? undefined,
     setup: trade.notes ?? undefined,
     status,
@@ -68,25 +102,66 @@ function mapTradeRecord(trade: {
  */
 export async function createTrade(input: CreateTradeInput) {
   try {
-    const riskReward = input.take_profit && input.stop_loss && input.entry_price
-      ? Number((Math.abs(input.take_profit - input.entry_price) / Math.abs(input.entry_price - input.stop_loss)).toFixed(2))
-      : undefined
+    const riskReward =
+  input.takeProfit &&
+  input.stopLoss &&
+  input.entryPrice
+    ? Number(
+        (
+          Math.abs(input.takeProfit - input.entryPrice) /
+          Math.abs(input.entryPrice - input.stopLoss)
+        ).toFixed(2)
+      )
+    : undefined
+
+    const supabase = await createClient()
+
+const {
+  data: { user },
+} = await supabase.auth.getUser()
+
+if (!user) {
+  return {
+    success: false,
+    error: 'Not authenticated',
+  }
+}
 
     const trade = await prisma.trade.create({
       data: {
-        userId: '30642e34-91c1-43f0-9018-781462dc215c',
+        userId: user.id,
+
         symbol: input.symbol,
-        direction: input.type === 'BUY' ? 'LONG' : 'SHORT',
-        entryPrice: input.entry_price,
-        exitPrice: input.exit_price ?? null,
-        stopLoss: input.stop_loss,
-        takeProfit: input.take_profit ?? null,
-        quantity: input.lot_size,
-        profitLoss: input.pnl ?? null,
-        status: input.status === 'CLOSED' ? 'CLOSED' : input.status === 'CANCELLED' ? 'CLOSED' : 'OPEN',
-        notes: input.setup ?? null,
+        direction: input.direction,
+
+        market: input.market ?? null,
+        timeframe: input.timeframe ?? null,
+        session: input.session ?? null,
+        entryType: input.entryType ?? null,
+
+        entryPrice: input.entryPrice,
+        exitPrice: input.exitPrice ?? null,
+
+        stopLoss: input.stopLoss,
+        takeProfit: input.takeProfit ?? null,
+
+        quantity: input.quantity,
+        remainingQuantity: input.quantity,
+        riskAmount: input.riskAmount ?? null,
+
+        profitLoss: input.profitLoss ?? null,
+
+        status: 'OPEN',
+
+        strategyId: input.strategyId ?? null,
+
+        notes: input.notes ?? null,
+
         riskReward,
-        discipline_rating: input.psychology_rating ?? null,
+
+        discipline_rating: input.disciplineRating ?? null,
+        execution_rating: input.executionRating ?? null,
+        emotions: input.emotions ?? [],
       },
     })
 
@@ -104,35 +179,182 @@ export async function createTrade(input: CreateTradeInput) {
  * Server Action to fetch all trades from Supabase
  */
 export async function getTrades() {
-  const trades = await prisma.trade.findMany({
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
+  const supabase = await createClient()
 
-  return trades.map(mapTradeRecord)
+const {
+  data: { user },
+} = await supabase.auth.getUser()
+
+if (!user) {
+  return []
+}
+
+  const trades = await prisma.trade.findMany({
+  where: {
+    userId: user.id,
+  },
+  include: {
+    strategy: true,
+  },
+  orderBy: {
+    createdAt: 'desc',
+  },
+})
+
+  const mapped = trades.map(mapTradeRecord)
+
+  
+  return mapped
 }
 
 /**
  * Server Action to compute aggregate analytics for dashboard StatCards
  */
 export async function getDashboardStats() {
-  const trades = await prisma.trade.findMany()
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return null
+  }
+
+  const trades = await prisma.trade.findMany({
+    where: {
+      userId: user.id,
+    },
+    include: {
+      strategy: true,
+    },
+  })
 
   const mappedTrades = trades.map(mapTradeRecord)
 
+  // =========================
+  // Existing Dashboard Stats
+  // =========================
+
   const totalTrades = mappedTrades.length
-  const openTrades = mappedTrades.filter((t) => t.status === 'OPEN').length
-  const closedTrades = mappedTrades.filter((t) => t.status === 'CLOSED' || t.pnl !== undefined)
+
+  const openTrades = mappedTrades.filter(
+    (t) => t.status === "OPEN"
+  ).length
+
+  const closedTrades = mappedTrades.filter(
+    (t) => t.status === "CLOSED" || t.pnl !== undefined
+  )
+
   const closedTradesCount = closedTrades.length
-  const totalPnl = closedTrades.reduce((acc, trade) => acc + (Number(trade.pnl) || 0), 0)
-  const winningTrades = closedTrades.filter((trade) => (Number(trade.pnl) || 0) > 0).length
-  const winRate = closedTradesCount > 0 ? (winningTrades / closedTradesCount) * 100 : 0
-  const tradesWithRR = mappedTrades.filter((t) => t.risk_reward !== undefined)
+
+  const totalPnl = closedTrades.reduce(
+    (acc, trade) => acc + (Number(trade.pnl) || 0),
+    0
+  )
+
+  const winningTrades = closedTrades.filter(
+    (trade) => (Number(trade.pnl) || 0) > 0
+  ).length
+
+  const winRate =
+    closedTradesCount > 0
+      ? (winningTrades / closedTradesCount) * 100
+      : 0
+
+  const tradesWithRR = mappedTrades.filter(
+    (t) => t.risk_reward !== undefined
+  )
+
   const avgRiskReward =
     tradesWithRR.length > 0
-      ? tradesWithRR.reduce((acc, t) => acc + Number(t.risk_reward), 0) / tradesWithRR.length
+      ? tradesWithRR.reduce(
+          (acc, t) => acc + Number(t.risk_reward),
+          0
+        ) / tradesWithRR.length
       : 0
+
+  // =========================
+  // Strategy Analytics
+  // =========================
+
+  const strategyStats = new Map<
+    string,
+    {
+      name: string
+      trades: number
+      wins: number
+      pnl: number
+    }
+  >()
+
+  const entryTypeStats = new Map<
+    string,
+    {
+      trades: number
+      wins: number
+      pnl: number
+    }
+  >()
+
+  for (const trade of trades) {
+    // Strategy
+    if (trade.strategy) {
+      const key = trade.strategy.id
+
+      if (!strategyStats.has(key)) {
+        strategyStats.set(key, {
+          name: trade.strategy.name,
+          trades: 0,
+          wins: 0,
+          pnl: 0,
+        })
+      }
+
+      const stat = strategyStats.get(key)!
+
+      stat.trades++
+
+      if ((trade.profitLoss ?? 0) > 0) {
+        stat.wins++
+      }
+
+      stat.pnl += trade.profitLoss ?? 0
+    }
+
+    // Entry Type
+    if (trade.entryType) {
+      const key = trade.entryType
+
+      if (!entryTypeStats.has(key)) {
+        entryTypeStats.set(key, {
+          trades: 0,
+          wins: 0,
+          pnl: 0,
+        })
+      }
+
+      const stat = entryTypeStats.get(key)!
+
+      stat.trades++
+
+      if ((trade.profitLoss ?? 0) > 0) {
+        stat.wins++
+      }
+
+      stat.pnl += trade.profitLoss ?? 0
+    }
+  }
+
+  const bestStrategy =
+    [...strategyStats.values()].sort(
+      (a, b) => b.pnl - a.pnl
+    )[0] ?? null
+
+  const bestEntryType =
+    [...entryTypeStats.entries()].sort(
+      (a, b) => b[1].pnl - a[1].pnl
+    )[0] ?? null
 
   return {
     totalTrades,
@@ -142,6 +364,12 @@ export async function getDashboardStats() {
     totalPnl,
     winRate,
     avgRiskReward,
+
+    bestStrategy,
+    bestEntryType,
+
+    strategyStats: [...strategyStats.values()],
+    entryTypeStats: [...entryTypeStats.entries()],
   }
 }
 
@@ -190,6 +418,7 @@ export type CloseTradeInput = {
   tradeId: string
   exit_price: number
   pnl: number
+  close_quantity?: number
 }
 
 /**
@@ -197,25 +426,59 @@ export type CloseTradeInput = {
  */
 export async function closeTrade(input: CloseTradeInput) {
   try {
-    const trade = await prisma.trade.update({
+    const existingTrade = await prisma.trade.findUnique({
+      where: {
+        id: input.tradeId,
+      },
+    })
+
+    if (!existingTrade) {
+      return {
+        success: false,
+        error: 'Trade not found.',
+      }
+    }
+
+    const closeQuantity = input.close_quantity ?? existingTrade.quantity
+
+    const remainingQuantity =
+      (existingTrade.remainingQuantity ?? existingTrade.quantity) - closeQuantity
+
+    const isFullClose = remainingQuantity <= 0
+
+    const updatedTrade = await prisma.trade.update({
       where: {
         id: input.tradeId,
       },
       data: {
+        remainingQuantity : remainingQuantity,
+
         exitPrice: input.exit_price,
-        profitLoss: input.pnl,
-        status: 'CLOSED',
-        exitDate: new Date(),
+
+        profitLoss:
+          (existingTrade.profitLoss ?? 0) + (input.pnl ?? 0),
+
+        status: isFullClose ? 'CLOSED' : 'OPEN',
+
+        exitDate: isFullClose ? new Date() : null,
       },
     })
 
     revalidatePath('/trades')
     revalidatePath('/')
 
-    return { success: true, data: mapTradeRecord(trade) }
+    return {
+      success: true,
+      data: mapTradeRecord(updatedTrade),
+    }
+
   } catch (err) {
     console.error('Server Action Error:', err)
-    return { success: false, error: 'Failed to close trade.' }
+
+    return {
+      success: false,
+      error: 'Failed to close trade.',
+    }
   }
 }
 

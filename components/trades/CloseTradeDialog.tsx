@@ -25,12 +25,30 @@ interface CloseTradeDialogProps {
 export function CloseTradeDialog({ trade }: CloseTradeDialogProps) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+
+  const [closeQuantity, setCloseQuantity] = useState<string>(
+    trade.lot_size.toString()
+  )
   const [exitPrice, setExitPrice] = useState<string>('')
   const [pnl, setPnl] = useState<string>('')
+
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    const quantity = Number(closeQuantity)
+
+    if (!quantity || quantity <= 0) {
+      setError('Please enter a valid close quantity.')
+      return
+    }
+
+    if (quantity > trade.lot_size) {
+      setError('Close quantity cannot exceed current lot size.')
+      return
+    }
+
     if (!exitPrice || pnl === '') {
       setError('Please enter both Exit Price and Net P&L.')
       return
@@ -41,6 +59,7 @@ export function CloseTradeDialog({ trade }: CloseTradeDialogProps) {
         tradeId: trade.id,
         exit_price: Number(exitPrice),
         pnl: Number(pnl),
+        close_quantity: quantity,
       })
 
       if (!result.success) {
@@ -55,17 +74,21 @@ export function CloseTradeDialog({ trade }: CloseTradeDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-            <Button size="sm" variant="outline" className="h-7 text-xs">
-                Close Trade
-            </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs">
+            Close Trade
+          </Button>
         }
-        />
+      />
+
       <DialogContent className="sm:max-w-[380px]">
         <DialogHeader>
-          <DialogTitle>Close {trade.symbol} ({trade.type})</DialogTitle>
+          <DialogTitle>
+            Close {trade.symbol} ({trade.type})
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+
           {error && (
             <div className="p-2.5 text-xs text-red-500 bg-red-500/10 rounded border border-red-500/20">
               {error}
@@ -75,16 +98,38 @@ export function CloseTradeDialog({ trade }: CloseTradeDialogProps) {
           <div className="text-xs text-muted-foreground space-y-1 bg-muted/40 p-2.5 rounded">
             <div className="flex justify-between">
               <span>Entry Price:</span>
-              <span className="font-mono font-medium">{trade.entry_price}</span>
+              <span className="font-mono font-medium">
+                {trade.entry_price}
+              </span>
             </div>
+
             <div className="flex justify-between">
-              <span>Lot Size:</span>
-              <span className="font-mono font-medium">{trade.lot_size}</span>
+              <span>Current Lot Size:</span>
+              <span className="font-mono font-medium">
+                {trade.lot_size}
+              </span>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Exit Price</label>
+            <label className="block text-xs font-medium mb-1">
+              Quantity to Close
+            </label>
+
+            <Input
+              type="number"
+              step="any"
+              value={closeQuantity}
+              onChange={(e) => setCloseQuantity(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-1">
+              Exit Price
+            </label>
+
             <Input
               type="number"
               step="any"
@@ -96,7 +141,10 @@ export function CloseTradeDialog({ trade }: CloseTradeDialogProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Net P&L ($)</label>
+            <label className="block text-xs font-medium mb-1">
+              Net P&L ($)
+            </label>
+
             <Input
               type="number"
               step="any"
@@ -108,8 +156,9 @@ export function CloseTradeDialog({ trade }: CloseTradeDialogProps) {
           </div>
 
           <Button type="submit" disabled={isPending} className="w-full">
-            {isPending ? 'Closing Position...' : 'Confirm & Close'}
+            {isPending ? 'Processing...' : 'Confirm Close'}
           </Button>
+
         </form>
       </DialogContent>
     </Dialog>
