@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Plus } from 'lucide-react'
+import Link from 'next/link'
 
 export const revalidate = 0
 
@@ -95,7 +96,7 @@ const strategies = await getStrategies()
                 const pnlVal = Number(trade.pnl) || 0
                 const isWin = pnlVal > 0
 
-                const formattedDate = new Date(trade.created_at).toLocaleDateString('en-US', {
+                const formattedDate = new Date(trade.entry_date).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric',
@@ -106,7 +107,15 @@ const strategies = await getStrategies()
                     <TableCell className="font-medium text-xs text-muted-foreground">
                       {formattedDate}
                     </TableCell>
-                    <TableCell className="font-semibold text-white">  {trade.symbol}</TableCell>
+                    <TableCell className="font-semibold">
+                      <Link
+                        href={`/trades/${trade.id}`}
+                        className="text-primary hover:text-primary hover:underline transition-colors"
+                      >
+                        {trade.symbol}
+                      </Link>
+
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
@@ -121,7 +130,7 @@ const strategies = await getStrategies()
                     </TableCell>
                     <TableCell>{trade.timeframe ?? "-"}</TableCell>
                     <TableCell>{trade.strategy ?? "-"}</TableCell>
-                    <TableCell>{trade.entrytype ?? "-"}</TableCell>
+                    <TableCell>{trade.entryType ?? "-"}</TableCell>
                     <TableCell className="text-right font-mono">{trade.lot_size}</TableCell>
                     <TableCell className="text-right font-mono">{trade.entry_price}</TableCell>
                     <TableCell className="text-right font-mono text-muted-foreground">

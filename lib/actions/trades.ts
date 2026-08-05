@@ -51,6 +51,7 @@ function mapTradeRecord(trade: {
   stopLoss: number
   takeProfit: number | null
   quantity: number
+  remainingQuantity: number
 
   profitLoss: number | null
   status: 'OPEN' | 'WIN' | 'LOSS' | 'BREAKEVEN' | 'CLOSED'
@@ -62,6 +63,15 @@ function mapTradeRecord(trade: {
   execution_rating: number | null
   emotions: string[]
   createdAt: Date
+
+  partials: {
+    id: string
+    quantity: number
+    remainingQuantity: number
+    exitPrice: number
+    profitLoss: number
+    exitDate: Date
+  }[]
 }) {
   const type = trade.direction === 'LONG' ? 'BUY' : 'SELL'
   const status = trade.status === 'OPEN' ? 'OPEN' : trade.status === 'CLOSED' ? 'CLOSED' : 'CLOSED'
@@ -75,8 +85,9 @@ function mapTradeRecord(trade: {
     market: trade.market ?? undefined,
     timeframe: trade.timeframe ?? undefined,
     direction: trade.direction,
-   entrytype: trade.entryType ?? undefined,
+    entryType: trade.entryType ?? undefined,
     strategy: trade.strategy?.name ?? undefined,
+    strategyId: trade.strategyId ?? undefined,
     type,
     entry_price: trade.entryPrice,
     exit_price: trade.exitPrice ?? undefined,
@@ -88,12 +99,22 @@ function mapTradeRecord(trade: {
     setup: trade.notes ?? undefined,
     status,
     risk_reward: trade.riskReward ?? undefined,
+    entry_date: trade.entryDate.toISOString(),
     created_at: trade.createdAt.toISOString(),
     closed_at: trade.exitDate?.toISOString() ?? null,
     discipline_rating: trade.discipline_rating ?? undefined,
     execution_rating: trade.execution_rating ?? undefined,
     emotions: trade.emotions ?? [],
     notes: trade.notes ?? undefined,
+    partials:
+      trade.partials?.map((partial) => ({
+        id: partial.id,
+        quantity: partial.quantity,
+        remainingQuantity: partial.remainingQuantity,
+        exitPrice: partial.exitPrice,
+        profitLoss: partial.profitLoss,
+        exitDate: partial.exitDate.toISOString(),
+      })) ?? [],
   }
 }
 
@@ -377,41 +398,41 @@ export async function getDashboardStats() {
  * Server Action to calculate cumulative equity curve points
  */
 export async function getEquityCurveData() {
-  const trades = await prisma.trade.findMany()
+  const trades = await prisma.trade.findMany({
+    orderBy: {
+      entryDate: 'asc',
+    },
+  })
 
-  if (trades.length === 0) {
-    return []
-  }
+  console.table(
+    trades.map((t) => ({
+      symbol: t.symbol,
+      entryDate: t.entryDate,
+      exitDate: t.exitDate,
+      pnl: t.profitLoss,
+    }))
+  )
 
   let runningPnl = 0
 
-  const points = [
+  return [
     {
       date: 'Start',
       equity: 0,
       tradePnl: 0,
       symbol: 'ACCOUNT',
     },
+    ...trades.map((trade) => {
+      runningPnl += Number(trade.profitLoss) || 0
+
+      return {
+        date: trade.entryDate.toISOString(),
+        equity: runningPnl,
+        tradePnl: Number(trade.profitLoss) || 0,
+        symbol: trade.symbol,
+      }
+    }),
   ]
-
-  trades.forEach((trade) => {
-    const pnlVal = Number(trade.profitLoss) || 0
-    runningPnl += pnlVal
-
-    const dateFormatted = new Date(trade.exitDate || trade.entryDate).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    })
-
-    points.push({
-      date: dateFormatted,
-      equity: Number(runningPnl.toFixed(2)),
-      tradePnl: pnlVal,
-      symbol: trade.symbol,
-    })
-  })
-
-  return points
 }
 
 export type CloseTradeInput = {
@@ -446,12 +467,22 @@ export async function closeTrade(input: CloseTradeInput) {
 
     const isFullClose = remainingQuantity <= 0
 
+    await prisma.tradePartial.create({
+      data: {
+        tradeId: existingTrade.id,
+        quantity: closeQuantity,
+        remainingQuantity: Math.max(remainingQuantity, 0),
+        exitPrice: input.exit_price,
+        profitLoss: input.pnl ?? 0,
+      },
+    })
+
     const updatedTrade = await prisma.trade.update({
       where: {
         id: input.tradeId,
       },
       data: {
-        remainingQuantity : remainingQuantity,
+        remainingQuantity: isFullClose ? 0 : remainingQuantity,
 
         exitPrice: input.exit_price,
 
@@ -501,5 +532,169 @@ export async function deleteTrade(tradeId: string) {
   } catch (err) {
     console.error('Server Action Error:', err)
     return { success: false, error: 'Failed to delete trade.' }
+  }
+}
+
+export async function getTradeById(id: string) {
+  const trade = await prisma.trade.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      strategy: true,
+      partials: {
+        orderBy: {
+          exitDate: 'desc',
+        },
+      },
+    },
+  })
+
+  if (!trade) {
+    return null
+  }
+
+  return mapTradeRecord(trade)
+}
+
+export interface UpdateTradeInput {
+  tradeId: string
+
+  entryDate?: Date
+
+  symbol: string
+  direction: 'LONG' | 'SHORT'
+
+  timeframe?: string
+  entryType?: string
+
+  entryPrice: number
+  stopLoss: number
+  takeProfit?: number
+
+  strategyId?: string
+
+  notes?: string
+}
+
+export async function updateTrade(input: UpdateTradeInput) {
+  try {
+    await prisma.trade.update({
+      where: {
+        id: input.tradeId,
+      },
+      data: {
+        symbol: input.symbol,
+        direction: input.direction,
+
+        timeframe: input.timeframe,
+        entryType: input.entryType as any,
+
+        entryPrice: input.entryPrice,
+        stopLoss: input.stopLoss,
+        takeProfit: input.takeProfit,
+
+        entryDate: input.entryDate,
+
+        strategyId: input.strategyId,
+
+        notes: input.notes,
+      },
+    })
+
+    revalidatePath('/')
+    revalidatePath('/trades')
+    revalidatePath(`/trades/${input.tradeId}`)
+
+    return {
+      success: true,
+    }
+  } catch (error) {
+    console.error(error)
+
+    return {
+      success: false,
+      error: 'Failed to update trade',
+    }
+  }
+}
+
+export async function createPartialExit(input: {
+  tradeId: string
+  quantity: number
+  exitPrice: number
+}) {
+  try {
+    const trade = await prisma.trade.findUnique({
+      where: {
+        id: input.tradeId,
+      },
+    })
+
+    if (!trade) {
+      return {
+        success: false,
+        error: "Trade not found",
+      }
+    }
+
+
+    if (input.quantity > trade.remainingQuantity) {
+      return {
+        success: false,
+        error: "Quantity exceeds remaining position",
+      }
+    }
+
+
+    const profitLoss =
+      trade.direction === "LONG"
+        ? (input.exitPrice - trade.entryPrice) * input.quantity
+        : (trade.entryPrice - input.exitPrice) * input.quantity
+
+
+    const remainingQuantity =
+      trade.remainingQuantity - input.quantity
+
+
+    await prisma.tradePartial.create({
+      data: {
+        tradeId: trade.id,
+        quantity: input.quantity,
+        exitPrice: input.exitPrice,
+        profitLoss,
+        remainingQuantity,
+      },
+    })
+
+
+    await prisma.trade.update({
+      where: {
+        id: trade.id,
+      },
+      data: {
+        remainingQuantity,
+        profitLoss: {
+          increment: profitLoss,
+        },
+        status:
+          remainingQuantity === 0
+            ? "CLOSED"
+            : "OPEN",
+      },
+    })
+
+
+    return {
+      success: true,
+    }
+
+  } catch (error) {
+    console.error(error)
+
+    return {
+      success: false,
+      error: "Failed to create partial exit",
+    }
   }
 }

@@ -19,6 +19,9 @@ interface CloseTradeDialogProps {
     type: string
     entry_price: number
     lot_size: number
+    remaining_lot_size: number
+    stop_loss: number
+    take_profit?: number
   }
 }
 
@@ -44,7 +47,7 @@ export function CloseTradeDialog({ trade }: CloseTradeDialogProps) {
       return
     }
 
-    if (quantity > trade.lot_size) {
+    if (quantity > trade.remaining_lot_size) {
       setError('Close quantity cannot exceed current lot size.')
       return
     }
@@ -109,6 +112,27 @@ export function CloseTradeDialog({ trade }: CloseTradeDialogProps) {
                 {trade.lot_size}
               </span>
             </div>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Remaining Size:</span>
+            <span className="font-mono font-medium">
+              {trade.remaining_lot_size}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Stop Loss:</span>
+            <span className="font-mono font-medium">
+              {trade.stop_loss}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Take Profit:</span>
+            <span className="font-mono font-medium">
+              {trade.take_profit ?? "-"}
+            </span>
           </div>
 
           <div>

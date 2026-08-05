@@ -16,6 +16,12 @@ export default async function DashboardPage() {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`
+  
+  const entryTypeLabels = {
+  FLIP: "Flip",
+  BREAK_CURRENT_HL: "Break of current H/L",
+  BREAK_PREVIOUS_HL: "Break of previous H/L",
+}
 
   return (
     <div className="p-6 space-y-6">
@@ -70,7 +76,10 @@ export default async function DashboardPage() {
 
         <StatCard
           title="🎯 Best Entry Type"
-          value={stats.bestEntryType?.name || "N/A"}
+          value={
+            entryTypeLabels[stats.bestEntryType?.[0] as keyof typeof entryTypeLabels] ??
+              "N/A"
+          }
           description="Most successful entry setup"
           icon={<Crosshair className="h-4 w-4 text-muted-foreground" />}
         />

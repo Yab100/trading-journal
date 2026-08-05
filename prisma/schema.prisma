@@ -62,6 +62,29 @@ model Trade {
 
   remainingQuantity Float?
 
+  screenshots TradeScreenshot[]
+
+  partials TradePartial[]
+
+  @@schema("public")
+}
+
+model TradePartial {
+  id String @id @default(cuid())
+
+  tradeId String
+  trade   Trade  @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  quantity          Float
+  remainingQuantity Float
+
+  exitPrice  Float
+  profitLoss Float
+
+  exitDate DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
   @@schema("public")
 }
 
@@ -128,10 +151,32 @@ enum Session {
 }
 
 enum EntryType {
-  MARKET
-  LIMIT
-  STOP
-  STOP_LIMIT
+  FLIP
+  BREAK_CURRENT_HL
+  BREAK_PREVIOUS_HL
+
+  @@schema("public")
+}
+
+model TradeScreenshot {
+  id String @id @default(cuid())
+
+  tradeId String
+  trade   Trade  @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  phase     ScreenshotPhase?
+  timeframe String?
+
+  url String
+
+  createdAt DateTime @default(now())
+
+  @@schema("public")
+}
+
+enum ScreenshotPhase {
+  ENTRY
+  EXIT
 
   @@schema("public")
 }
