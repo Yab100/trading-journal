@@ -199,33 +199,68 @@ if (!user) {
 /**
  * Server Action to fetch all trades from Supabase
  */
-export async function getTrades() {
-  const supabase = await createClient()
-
-const {
-  data: { user },
-} = await supabase.auth.getUser()
-
-if (!user) {
-  return []
+interface GetTradesFilters {
+  search?: string
+  status?: string
+  direction?: string
+  strategyId?: string
+  timeframe?: string
+  entryType?: string
 }
 
+export async function getTrades(filters?: GetTradesFilters) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return []
+  }
+
   const trades = await prisma.trade.findMany({
-  where: {
-    userId: user.id,
-  },
-  include: {
-    strategy: true,
-  },
-  orderBy: {
-    createdAt: 'desc',
-  },
-})
+    where: {
+      userId: user.id,
 
-  const mapped = trades.map(mapTradeRecord)
+      ...(filters?.search && {
+        symbol: {
+          contains: filters.search,
+          mode: 'insensitive',
+        },
+      }),
 
-  
-  return mapped
+      ...(filters?.status && {
+        status: filters.status as any,
+      }),
+
+      ...(filters?.direction && {
+        direction: filters.direction as any,
+      }),
+
+      ...(filters?.strategyId && {
+        strategyId: filters.strategyId,
+      }),
+
+      ...(filters?.timeframe && {
+        timeframe: filters.timeframe,
+      }),
+
+      ...(filters?.entryType && {
+        entryType: filters.entryType as any,
+      }),
+    },
+
+    include: {
+      strategy: true,
+    },
+
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
+
+  return trades.map(mapTradeRecord)
 }
 
 /**
@@ -696,5 +731,158 @@ export async function createPartialExit(input: {
       success: false,
       error: "Failed to create partial exit",
     }
+  }
+}
+
+export async function getRecentTrades() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return []
+  }
+
+  const trades = await prisma.trade.findMany({
+    where: {
+      userId: user.id,
+      status: {
+        not: "OPEN",
+      },
+    },
+    include: {
+      strategy: true,
+    },
+    orderBy: {
+      entryDate: "desc",
+    },
+    take: 8,
+  })
+
+  return trades.map(mapTradeRecord)
+}
+
+export async function getBiggestWinner() {
+  const trade = await prisma.trade.findFirst({
+    where: {
+      profitLoss: {
+        gt: 0,
+      },
+      status: 'CLOSED',
+    },
+    orderBy: {
+      profitLoss: 'desc',
+    },
+  })
+
+  return trade ? mapTradeRecord(trade) : null
+}
+
+
+export async function getBiggestLoser() {
+  const trade = await prisma.trade.findFirst({
+    where: {
+      profitLoss: {
+        lt: 0,
+      },
+      status: 'CLOSED',
+    },
+    orderBy: {
+      profitLoss: 'asc',
+    },
+  })
+
+  return trade ? mapTradeRecord(trade) : null
+}
+
+
+export async function getCurrentWinStreak() {
+  const trades = await prisma.trade.findMany({
+    where: {
+      status: 'CLOSED',
+    },
+    orderBy: {
+      exitDate: 'desc',
+    },
+  })
+
+  let streak = 0
+
+  for (const trade of trades) {
+    if ((trade.profitLoss ?? 0) > 0) {
+      streak++
+    } else {
+      break
+    }
+  }
+
+  return streak
+}
+
+export async function updatePartialExit(input: {
+  id: string
+  quantity: number
+  exitPrice: number
+  profitLoss: number
+}) {
+  const partial = await prisma.tradePartial.update({
+    where: {
+      id: input.id,
+    },
+    data: {
+      quantity: input.quantity,
+      exitPrice: input.exitPrice,
+      profitLoss: input.profitLoss,
+    },
+    include: {
+      trade: true,
+    },
+  })
+
+  const allPartials = await prisma.tradePartial.findMany({
+    where: {
+      tradeId: partial.tradeId,
+    },
+    orderBy: {
+      exitDate: "asc",
+    },
+  })
+
+  let remaining = partial.trade.quantity
+
+  let totalPnl = 0
+
+  for (const p of allPartials) {
+    remaining -= p.quantity
+    totalPnl += p.profitLoss
+
+    await prisma.tradePartial.update({
+      where: {
+        id: p.id,
+      },
+      data: {
+        remainingQuantity: remaining,
+      },
+    })
+  }
+
+  await prisma.trade.update({
+    where: {
+      id: partial.tradeId,
+    },
+    data: {
+      remainingQuantity: remaining,
+      profitLoss: totalPnl,
+      status: remaining <= 0 ? "CLOSED" : "OPEN",
+    },
+  })
+
+  revalidatePath("/trades")
+  revalidatePath(`/trades/${partial.tradeId}`)
+
+  return {
+    success: true,
   }
 }

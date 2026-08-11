@@ -27,7 +27,7 @@ import {
   getScreenshotUrl,
 } from '@/lib/actions/screenshots'
 import { ScreenshotCard } from '@/components/trades/ScreenshotCard'
-
+import { EditPartialExitForm } from '@/components/trades/EditPartialExitForm'
 interface Props {
   params: Promise<{
     id: string
@@ -192,6 +192,7 @@ export default async function TradeDetailsPage({ params }: Props) {
     ) : (
       <div className="space-y-3">
         {trade.partials.map((partial) => (
+          
           <div
             key={partial.id}
             className="flex items-center justify-between rounded-lg border p-3"
@@ -220,6 +221,10 @@ export default async function TradeDetailsPage({ params }: Props) {
                 ${partial.profitLoss.toFixed(2)}
               </div>
             </div>
+            <EditPartialExitForm
+              key={partial.id}
+              partial={partial}
+            />
           </div>
         ))}
       </div>

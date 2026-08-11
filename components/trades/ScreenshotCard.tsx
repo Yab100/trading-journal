@@ -44,8 +44,8 @@ export function ScreenshotCard({ screenshot }: Props) {
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
       <Dialog>
-        <DialogTrigger asChild>
-          <button className="block w-full">
+        <DialogTrigger>
+          <div className="block w-full cursor-pointer">
             {screenshot.signedUrl && (
               <Image
                 src={screenshot.signedUrl}
@@ -55,7 +55,7 @@ export function ScreenshotCard({ screenshot }: Props) {
                 className="h-56 w-full cursor-pointer object-cover transition hover:scale-105"
               />
             )}
-          </button>
+          </div>
         </DialogTrigger>
 
         <DialogContent className="h-screen w-screen max-w-none border-0 bg-black p-0">

@@ -1,14 +1,33 @@
-import { getDashboardStats, getEquityCurveData } from '@/lib/actions/trades'
+import {
+  getDashboardStats,
+  getEquityCurveData,
+  getRecentTrades,
+  getBiggestWinner,
+  getBiggestLoser,
+  getCurrentWinStreak,
+} from '@/lib/actions/trades'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { EquityChart } from '@/components/dashboard/EquityChart'
 import { DollarSign, TrendingUp, Target, Activity, Trophy, Crosshair } from 'lucide-react'
+import { RecentTrades } from '@/components/dashboard/RecentTrades'
 
 export const revalidate = 0
 
 export default async function DashboardPage() {
-  const [stats, equityData] = await Promise.all([
+  const [
+    stats,
+    equityData,
+    recentTrades,
+    biggestWinner,
+    biggestLoser,
+    winStreak,
+  ]= await Promise.all([
     getDashboardStats(),
     getEquityCurveData(),
+    getRecentTrades(),
+    getBiggestWinner(),
+    getBiggestLoser(),
+    getCurrentWinStreak(),
   ])
 
   const isProfitable = stats.totalPnl >= 0
@@ -64,15 +83,15 @@ export default async function DashboardPage() {
         />
 
         <StatCard
-  title="⭐ Best Strategy"
-  value={stats.bestStrategy?.name || "N/A"}
-  description={
-    stats.bestStrategy
-      ? `${stats.bestStrategy.trades} trades • ${stats.bestStrategy.wins} wins • $${stats.bestStrategy.pnl.toFixed(2)} P&L`
-      : "No strategy data"
-  }
-  icon={<Trophy className="h-4 w-4 text-muted-foreground" />}
-/>
+          title="⭐ Best Strategy"
+          value={stats.bestStrategy?.name || "N/A"}
+          description={
+            stats.bestStrategy
+            ? `${stats.bestStrategy.trades} trades • ${stats.bestStrategy.wins} wins • $${stats.bestStrategy.pnl.toFixed(2)} P&L`
+            : "No strategy data"
+          }
+          icon={<Trophy className="h-4 w-4 text-muted-foreground" />}
+        />
 
         <StatCard
           title="🎯 Best Entry Type"
@@ -82,14 +101,18 @@ export default async function DashboardPage() {
           }
           description="Most successful entry setup"
           icon={<Crosshair className="h-4 w-4 text-muted-foreground" />}
-        />
-
+        />  
         
-
       </div>
+
+      
 
       {/* Equity Curve Chart */}
       <EquityChart data={equityData} />
+
+      <div className="grid gap-6 ">
+        <RecentTrades trades={recentTrades} />
+      </div>
     </div>
   )
 }
