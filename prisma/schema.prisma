@@ -19,86 +19,62 @@ model Profile {
 }
 
 model Trade {
-  id     String @id @default(uuid())
-  userId String
-
-  symbol    String
-  market    String? // Forex, Crypto, Stocks, Futures...
-  timeframe String? // M1, M5, H1, H4...
-  session   String? // Asia, London, New York
-
-  direction TradeDirection
-  entryType EntryType? // MARKET, LIMIT, STOP, STOP_LIMIT
-
-  entryPrice Float
-  exitPrice  Float?
-
-  stopLoss   Float
-  takeProfit Float?
-
-  quantity   Float
-  riskAmount Float?
-
-  profitLoss Float?
-  riskReward Float?
-
-  status TradeStatus @default(OPEN)
-
-  entryDate DateTime  @default(now())
-  exitDate  DateTime?
-
-  notes String?
-
-  strategyId String?
-  strategy   Strategy? @relation(fields: [strategyId], references: [id])
-
+  id                String            @id @default(uuid())
+  userId            String
+  symbol            String
+  market            String?
+  timeframe         String?
+  session           String?
+  direction         TradeDirection
+  entryType         EntryType?
+  entryPrice        Float
+  exitPrice         Float?
+  stopLoss          Float
+  takeProfit        Float?
+  quantity          Float
+  riskAmount        Float?
+  profitLoss        Float?
+  riskReward        Float?
+  status            TradeStatus       @default(OPEN)
+  entryDate         DateTime          @default(now())
+  exitDate          DateTime?
+  notes             String?
+  strategyId        String?
   discipline_rating Int?
   execution_rating  Int?
-  emotions          String[] @default([])
-
-  createdAt DateTime @default(now())
-
-  user Profile @relation(fields: [userId], references: [id])
-
+  emotions          String[]          @default([])
+  createdAt         DateTime          @default(now())
   remainingQuantity Float?
-
-  screenshots TradeScreenshot[]
-
-  partials TradePartial[]
+  strategy          Strategy?         @relation(fields: [strategyId], references: [id])
+  user              Profile           @relation(fields: [userId], references: [id])
+  partials          TradePartial[]
+  screenshots       TradeScreenshot[]
 
   @@schema("public")
 }
 
 model TradePartial {
-  id String @id @default(cuid())
-
-  tradeId String
-  trade   Trade  @relation(fields: [tradeId], references: [id], onDelete: Cascade)
-
+  id                String   @id @default(cuid())
+  tradeId           String
   quantity          Float
   remainingQuantity Float
-
-  exitPrice  Float
-  profitLoss Float
-
-  exitDate DateTime @default(now())
-
-  createdAt DateTime @default(now())
+  exitPrice         Float
+  profitLoss        Float
+  exitDate          DateTime @default(now())
+  createdAt         DateTime @default(now())
+  trade             Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }
 
 model Strategy {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
-
-  userId String
-  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  trades Trade[]
-
-  createdAt DateTime @default(now())
+  userId      String
+  createdAt   DateTime @default(now())
+  user        Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades      Trade[]
 
   @@schema("public")
 }
@@ -110,6 +86,18 @@ model JournalEntry {
   content String
   date    DateTime @default(now())
   user    Profile  @relation(fields: [userId], references: [id])
+
+  @@schema("public")
+}
+
+model TradeScreenshot {
+  id        String           @id @default(cuid())
+  tradeId   String
+  phase     ScreenshotPhase?
+  timeframe String?
+  url       String
+  createdAt DateTime         @default(now())
+  trade     Trade            @relation(fields: [tradeId], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }
@@ -154,22 +142,6 @@ enum EntryType {
   FLIP
   BREAK_CURRENT_HL
   BREAK_PREVIOUS_HL
-
-  @@schema("public")
-}
-
-model TradeScreenshot {
-  id String @id @default(cuid())
-
-  tradeId String
-  trade   Trade  @relation(fields: [tradeId], references: [id], onDelete: Cascade)
-
-  phase     ScreenshotPhase?
-  timeframe String?
-
-  url String
-
-  createdAt DateTime @default(now())
 
   @@schema("public")
 }
