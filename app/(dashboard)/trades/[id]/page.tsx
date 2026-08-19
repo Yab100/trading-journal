@@ -42,7 +42,7 @@ export default async function TradeDetailsPage({ params }: Props) {
   const screenshots = await getTradeScreenshots(id)
 
   const screenshotData = await Promise.all(
-    screenshots.map(async (shot) => ({
+    screenshots.map(async (shot: typeof screenshots[number]) => ({
       ...shot,
       signedUrl: await getScreenshotUrl(shot.url),
     }))
