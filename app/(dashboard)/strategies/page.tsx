@@ -91,7 +91,7 @@ export default async function StrategiesPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {strategies.map((strategy) => (
+          {strategies.map((strategy: Strategy) => (
             <Card key={strategy.id}>
               <CardHeader>
                 <CardTitle>
