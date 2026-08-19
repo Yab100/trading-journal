@@ -38,7 +38,9 @@ type PerformanceStat = {
 export default async function AnalyticsPage() {
   const trades = await getTrades()
 
-  const closedTrades = trades.filter((t) => t.status !== 'OPEN')
+  const closedTrades = trades.filter(
+    (t: { status: string }) => t.status !== 'OPEN'
+  )
 
   // ============================================================
   // CORE METRICS
