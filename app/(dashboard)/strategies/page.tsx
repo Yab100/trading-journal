@@ -20,40 +20,61 @@ import {
 
 export const revalidate = 0
 
+type Strategy = {
+  id: string
+  name: string
+  description: string | null
+  createdAt: string | Date
+  _count: {
+    trades: number
+  }
+}
+
 export default async function StrategiesPage() {
-  const strategies = await getStrategies()
+  const strategies: Strategy[] = await getStrategies()
 
   return (
     <div className="p-6 space-y-6">
+      {/* HEADER */}
+
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Strategies</h1>
+          <h1 className="text-2xl font-bold">
+            Strategies
+          </h1>
+
           <p className="text-sm text-muted-foreground">
             Manage your trading strategies.
           </p>
         </div>
 
+        {/* CREATE STRATEGY */}
+
         <Dialog>
-  <DialogTrigger
-    render={
-      <Button data-slot="dialog-trigger">
-        <Plus className="mr-2 h-4 w-4" />
-        New Strategy
-      </Button>
-    }
-  />
+          <DialogTrigger
+            render={
+              <Button data-slot="dialog-trigger">
+                <Plus className="mr-2 h-4 w-4" />
+                New Strategy
+              </Button>
+            }
+          />
 
-  <DialogContent className="sm:max-w-[500px]">
-    <DialogHeader>
-      <DialogTitle>Create Strategy</DialogTitle>
-    </DialogHeader>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                Create Strategy
+              </DialogTitle>
+            </DialogHeader>
 
-    <div className="pt-4">
-      <StrategyForm />
-    </div>
-  </DialogContent>
-</Dialog>
+            <div className="pt-4">
+              <StrategyForm />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {/* STRATEGIES */}
 
       {strategies.length === 0 ? (
         <Card>
@@ -63,7 +84,8 @@ export default async function StrategiesPage() {
             </h3>
 
             <p className="text-muted-foreground mt-2">
-              Click "New Strategy" to create your first strategy.
+              Click "New Strategy" to create your
+              first strategy.
             </p>
           </CardContent>
         </Card>
@@ -72,35 +94,52 @@ export default async function StrategiesPage() {
           {strategies.map((strategy) => (
             <Card key={strategy.id}>
               <CardHeader>
-                <CardTitle>{strategy.name}</CardTitle>
+                <CardTitle>
+                  {strategy.name}
+                </CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-3">
+                {/* DESCRIPTION */}
+
                 <p className="text-sm text-muted-foreground">
-                  {strategy.description || 'No description'}
+                  {strategy.description ||
+                    'No description'}
                 </p>
+
+                {/* TRADE COUNT */}
 
                 <div className="text-sm">
                   Trades using this strategy:{' '}
-                  <strong>{strategy._count.trades}</strong>
+                  <strong>
+                    {strategy._count.trades}
+                  </strong>
                 </div>
+
+                {/* CREATED DATE */}
 
                 <div className="text-xs text-muted-foreground">
                   Created{' '}
-                  {new Date(strategy.createdAt).toLocaleDateString()}
+                  {new Date(
+                    strategy.createdAt
+                  ).toLocaleDateString()}
                 </div>
 
-                <div className="flex justify-end gap-2">
-                    <EditStrategyDialog
-                        id={strategy.id}
-                        name={strategy.name}
-                        description={strategy.description}
-                    />
+                {/* ACTIONS */}
 
-                    <DeleteStrategyDialog
-                        id={strategy.id}
-                        name={strategy.name}
-                    />
+                <div className="flex justify-end gap-2">
+                  <EditStrategyDialog
+                    id={strategy.id}
+                    name={strategy.name}
+                    description={
+                      strategy.description
+                    }
+                  />
+
+                  <DeleteStrategyDialog
+                    id={strategy.id}
+                    name={strategy.name}
+                  />
                 </div>
               </CardContent>
             </Card>
