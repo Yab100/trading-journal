@@ -257,7 +257,7 @@ export default async function TradeDetailsPage({ params }: Props) {
       </div>
     ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {screenshotData.map((shot) => (
+        {screenshotData.map((shot: typeof screenshotData[number]) => (
           <ScreenshotCard
             key={shot.id}
             screenshot={shot}
