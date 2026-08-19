@@ -55,7 +55,7 @@ export function TradeFilters({ strategies }: Props) {
       <Select
         value={searchParams.get('status') ?? 'all'}
         onValueChange={(value) =>
-          updateFilter('status', value === 'all' ? '' : value)
+          updateFilter('status', value === 'all' || value === null ? '' : value)
         }
       >
         <SelectTrigger className="w-full">
@@ -74,7 +74,7 @@ export function TradeFilters({ strategies }: Props) {
       <Select
         value={searchParams.get('direction') ?? 'all'}
         onValueChange={(value) =>
-          updateFilter('direction', value === 'all' ? '' : value)
+          updateFilter('direction', value === 'all' || value === null ? '' : value)
         }
       >
         <SelectTrigger className="w-full">
@@ -93,7 +93,7 @@ export function TradeFilters({ strategies }: Props) {
       <Select
         value={searchParams.get('strategyId') ?? 'all'}
         onValueChange={(value) =>
-          updateFilter('strategyId', value === 'all' ? '' : value)
+          updateFilter('strategyId', value === 'all' || value === null ? '' : value)
         }
       >
         <SelectTrigger className="w-full">
@@ -119,7 +119,7 @@ export function TradeFilters({ strategies }: Props) {
       <Select
         value={searchParams.get('entryType') ?? 'all'}
         onValueChange={(value) =>
-          updateFilter('entryType', value === 'all' ? '' : value)
+          updateFilter('entryType', value === 'all' || value === null ? '' : value)
         }
       >
         <SelectTrigger className="w-full">
@@ -150,7 +150,7 @@ export function TradeFilters({ strategies }: Props) {
       <Select
         value={searchParams.get('timeframe') ?? 'all'}
         onValueChange={(value) =>
-          updateFilter('timeframe', value === 'all' ? '' : value)
+          updateFilter('timeframe', value === 'all' || value === null ? '' : value)
         }
       >
         <SelectTrigger className="w-full">

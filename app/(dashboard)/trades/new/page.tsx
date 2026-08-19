@@ -1,13 +1,19 @@
-import { TradeForm } from "@/components/trades/TradeForm";
+import { prisma } from '@/lib/prisma'
+import { TradeForm } from '@/components/trades/TradeForm'
 
-export default function NewTradePage() {
+export default async function NewTradePage() {
+  const strategies = await prisma.strategy.findMany({
+    orderBy: {
+      name: 'asc',
+    },
+  })
+
   return (
-    <>
-      <h1 className="mb-8 text-4xl font-bold">
-        Add Trade
-      </h1>
-
-      <TradeForm />
-    </>
-  );
+    <TradeForm
+      strategies={strategies.map((strategy) => ({
+        id: strategy.id,
+        name: strategy.name,
+      }))}
+    />
+  )
 }

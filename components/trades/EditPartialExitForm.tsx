@@ -19,7 +19,6 @@ export function EditPartialExitForm({
       quantity: Number(quantity),
       exitPrice: Number(exitPrice),
       profitLoss: Number(profitLoss),
-      exitDate: new Date(partial.exitDate),
     })
 
     window.location.reload()

@@ -39,7 +39,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
   allTrades.forEach((trade) => {
     if (!trade.created_at || trade.status === 'OPEN') return
     
-    const tradeDate = new Date(trade.created_at)
+    const tradeDate = new Date(trade.entry_date)
     if (tradeDate.getFullYear() === selectedYear && tradeDate.getMonth() === selectedMonth) {
       const dateKey = tradeDate.toISOString().split('T')[0]
       const pnl = Number(trade.pnl) || 0

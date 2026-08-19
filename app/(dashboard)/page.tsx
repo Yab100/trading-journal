@@ -30,6 +30,10 @@ export default async function DashboardPage() {
     getCurrentWinStreak(),
   ])
 
+  if (stats === null) {
+    return null
+  }
+
   const isProfitable = stats.totalPnl >= 0
   const formattedPnl = `${isProfitable ? '+' : ''}$${stats.totalPnl.toLocaleString('en-US', {
     minimumFractionDigits: 2,

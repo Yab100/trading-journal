@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { updateTrade } from '@/lib/actions/trades'
+import type { CreateTradeInput } from '@/lib/actions/trades'
 import { TradeFields } from './TradeFields'
 import { Button } from '@/components/ui/button'
 
@@ -23,7 +24,8 @@ export function EditTradeForm({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] =
+  useState<Partial<CreateTradeInput>>({
     symbol: trade.symbol,
     direction: trade.direction,
 
@@ -58,8 +60,8 @@ export function EditTradeForm({
       const result = await updateTrade({
         tradeId: trade.id,
 
-        symbol: formData.symbol,
-        direction: formData.direction,
+        symbol: formData.symbol ?? '',
+        direction: formData.direction ?? 'LONG',
 
         timeframe: formData.timeframe,
         entryType: formData.entryType,
@@ -82,7 +84,7 @@ export function EditTradeForm({
       })
 
       if (!result.success) {
-        setError(result.error)
+        setError(result.error ?? 'Failed to update trade')
         return
       }
 
