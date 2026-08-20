@@ -1164,7 +1164,7 @@ export async function updateTrade(
 
     const actualExitPrices =
       existingTrade.partials.map(
-        (partial) =>
+        (partial: typeof existingTrade.partials[number]) =>
           partial.exitPrice
       )
 
