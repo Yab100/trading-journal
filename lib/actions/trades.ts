@@ -158,7 +158,9 @@ function mapTradeRecord(trade: {
 
   const actualExitPrices = [
     ...trade.partials.map(
-      (partial) => partial.exitPrice
+      (partial: {
+        exitPrice: number
+      }) => partial.exitPrice
     ),
     ...(trade.partials.length === 0 &&
     trade.exitPrice !== null
@@ -256,7 +258,14 @@ function mapTradeRecord(trade: {
 
     partials:
       trade.partials?.map(
-        (partial) => ({
+        (partial: {
+          id: string
+          quantity: number
+          remainingQuantity: number
+          exitPrice: number
+          profitLoss: number
+          exitDate: Date
+        }) => ({
           id: partial.id,
           quantity: partial.quantity,
           remainingQuantity:
@@ -278,28 +287,6 @@ function mapTradeRecord(trade: {
 
 type MappedTrade =
   ReturnType<typeof mapTradeRecord>
-
-// ============================================================
-// CALCULATE ACHIEVED RR
-// ============================================================
-
-/**
- * Calculate achieved RR from ACTUAL exits.
- *
- * IMPORTANT:
- *
- * Take Profit is NEVER used.
- *
- * Actual exits come from:
- * 1. Partial exit prices
- * 2. The trade's actual exitPrice
- *
- * LONG:
- *   highest actual exit price = best achieved price
- *
- * SHORT:
- *   lowest actual exit price = best achieved price
- */
 
 // ============================================================
 // CREATE TRADE
@@ -927,7 +914,9 @@ export async function closeTrade(
 
     const actualExitPrices =
       allPartials.map(
-        (partial: typeof allPartials[number]) =>
+        (partial: {
+          exitPrice: number
+        }) =>
           partial.exitPrice
       )
 
@@ -1164,7 +1153,9 @@ export async function updateTrade(
 
     const actualExitPrices =
       existingTrade.partials.map(
-        (partial: typeof existingTrade.partials[number]) =>
+        (partial: {
+          exitPrice: number
+        }) =>
           partial.exitPrice
       )
 
@@ -1348,7 +1339,9 @@ export async function createPartialExit(
 
     const actualExitPrices =
       allPartials.map(
-        (partial) =>
+        (partial: {
+          exitPrice: number
+        }) =>
           partial.exitPrice
       )
 
@@ -1672,7 +1665,9 @@ export async function updatePartialExit(
 
     const actualExitPrices =
       allPartials.map(
-        (p) =>
+        (p: {
+          exitPrice: number
+        }) =>
           p.exitPrice
       )
 
