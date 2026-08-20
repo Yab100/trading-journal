@@ -927,7 +927,7 @@ export async function closeTrade(
 
     const actualExitPrices =
       allPartials.map(
-        (partial) =>
+        (partial: typeof allPartials[number]) =>
           partial.exitPrice
       )
 
