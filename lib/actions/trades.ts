@@ -811,7 +811,7 @@ export async function getEquityCurveData() {
     },
 
     ...trades.map(
-      (trade) => {
+      (trade: typeof trades[number]) => {
         runningPnl +=
           Number(
             trade.profitLoss
