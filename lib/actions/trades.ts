@@ -102,7 +102,12 @@ function mapTradeRecord(trade: {
   remainingQuantity: number | null
 
   profitLoss: number | null
-  status: 'OPEN' | 'WIN' | 'LOSS' | 'BREAKEVEN' | 'CLOSED'
+  status:
+    | 'OPEN'
+    | 'WIN'
+    | 'LOSS'
+    | 'BREAKEVEN'
+    | 'CLOSED'
 
   entryDate: Date
   exitDate: Date | null
@@ -124,7 +129,9 @@ function mapTradeRecord(trade: {
   }[]
 }) {
   const type: 'BUY' | 'SELL' =
-  trade.direction === 'LONG' ? 'BUY' : 'SELL'
+    trade.direction === 'LONG'
+      ? 'BUY'
+      : 'SELL'
 
   const status =
     trade.status === 'OPEN'
@@ -266,6 +273,13 @@ function mapTradeRecord(trade: {
 }
 
 // ============================================================
+// MAPPED TRADE TYPE
+// ============================================================
+
+type MappedTrade =
+  ReturnType<typeof mapTradeRecord>
+
+// ============================================================
 // CALCULATE ACHIEVED RR
 // ============================================================
 
@@ -397,9 +411,7 @@ export async function createTrade(
         },
       })
 
-    revalidatePath(
-      '/trades'
-    )
+    revalidatePath('/trades')
 
     revalidatePath('/')
 
@@ -437,7 +449,7 @@ interface GetTradesFilters {
 
 export async function getTrades(
   filters?: GetTradesFilters
-) {
+): Promise<MappedTrade[]> {
   const supabase =
     await createClient()
 
@@ -543,10 +555,8 @@ export async function getDashboardStats() {
       },
     })
 
-  const mappedTrades =
-    trades.map(
-      mapTradeRecord
-    )
+  const mappedTrades: MappedTrade[] =
+    trades.map(mapTradeRecord)
 
   const totalTrades =
     mappedTrades.length
@@ -846,6 +856,7 @@ export type CloseTradeInput = {
  *
  * Take Profit is NOT used.
  */
+
 export async function closeTrade(
   input: CloseTradeInput
 ) {
@@ -880,43 +891,39 @@ export async function closeTrade(
     const isFullClose =
       remainingQuantity <= 0
 
-    await prisma.tradePartial.create(
-      {
-        data: {
-          tradeId:
-            existingTrade.id,
+    await prisma.tradePartial.create({
+      data: {
+        tradeId:
+          existingTrade.id,
 
-          quantity:
-            closeQuantity,
+        quantity:
+          closeQuantity,
 
-          remainingQuantity:
-            Math.max(
-              remainingQuantity,
-              0
-            ),
+        remainingQuantity:
+          Math.max(
+            remainingQuantity,
+            0
+          ),
 
-          exitPrice:
-            input.exit_price,
+        exitPrice:
+          input.exit_price,
 
-          profitLoss:
-            input.pnl ?? 0,
-        },
-      }
-    )
+        profitLoss:
+          input.pnl ?? 0,
+      },
+    })
 
     const allPartials =
-      await prisma.tradePartial.findMany(
-        {
-          where: {
-            tradeId:
-              existingTrade.id,
-          },
+      await prisma.tradePartial.findMany({
+        where: {
+          tradeId:
+            existingTrade.id,
+        },
 
-          select: {
-            exitPrice: true,
-          },
-        }
-      )
+        select: {
+          exitPrice: true,
+        },
+      })
 
     const actualExitPrices =
       allPartials.map(
@@ -936,21 +943,19 @@ export async function closeTrade(
     }
 
     const riskReward =
-      calculateAchievedRiskReward(
-        {
-          direction:
-            existingTrade.direction,
+      calculateAchievedRiskReward({
+        direction:
+          existingTrade.direction,
 
-          entryPrice:
-            existingTrade.entryPrice,
+        entryPrice:
+          existingTrade.entryPrice,
 
-          stopLoss:
-            existingTrade.stopLoss,
+        stopLoss:
+          existingTrade.stopLoss,
 
-          exitPrices:
-            actualExitPrices,
-        }
-      )
+        exitPrices:
+          actualExitPrices,
+      })
 
     const updatedTrade =
       await prisma.trade.update({
@@ -1129,6 +1134,7 @@ export interface UpdateTradeInput {
  *
  * Take Profit is NEVER used for achieved RR.
  */
+
 export async function updateTrade(
   input: UpdateTradeInput
 ) {
@@ -1174,21 +1180,19 @@ export async function updateTrade(
     }
 
     const riskReward =
-      calculateAchievedRiskReward(
-        {
-          direction:
-            input.direction,
+      calculateAchievedRiskReward({
+        direction:
+          input.direction,
 
-          entryPrice:
-            input.entryPrice,
+        entryPrice:
+          input.entryPrice,
 
-          stopLoss:
-            input.stopLoss,
+        stopLoss:
+          input.stopLoss,
 
-          exitPrices:
-            actualExitPrices,
-        }
-      )
+        exitPrices:
+          actualExitPrices,
+      })
 
     await prisma.trade.update({
       where: {
@@ -1313,38 +1317,34 @@ export async function createPartialExit(
       currentRemaining -
       input.quantity
 
-    await prisma.tradePartial.create(
-      {
-        data: {
-          tradeId:
-            trade.id,
+    await prisma.tradePartial.create({
+      data: {
+        tradeId:
+          trade.id,
 
-          quantity:
-            input.quantity,
+        quantity:
+          input.quantity,
 
-          exitPrice:
-            input.exitPrice,
+        exitPrice:
+          input.exitPrice,
 
-          profitLoss,
+        profitLoss,
 
-          remainingQuantity,
-        },
-      }
-    )
+        remainingQuantity,
+      },
+    })
 
     const allPartials =
-      await prisma.tradePartial.findMany(
-        {
-          where: {
-            tradeId:
-              trade.id,
-          },
+      await prisma.tradePartial.findMany({
+        where: {
+          tradeId:
+            trade.id,
+        },
 
-          select: {
-            exitPrice: true,
-          },
-        }
-      )
+        select: {
+          exitPrice: true,
+        },
+      })
 
     const actualExitPrices =
       allPartials.map(
@@ -1362,21 +1362,19 @@ export async function createPartialExit(
     }
 
     const riskReward =
-      calculateAchievedRiskReward(
-        {
-          direction:
-            trade.direction,
+      calculateAchievedRiskReward({
+        direction:
+          trade.direction,
 
-          entryPrice:
-            trade.entryPrice,
+        entryPrice:
+          trade.entryPrice,
 
-          stopLoss:
-            trade.stopLoss,
+        stopLoss:
+          trade.stopLoss,
 
-          exitPrices:
-            actualExitPrices,
-        }
-      )
+        exitPrices:
+          actualExitPrices,
+      })
 
     await prisma.trade.update({
       where: {
@@ -1600,6 +1598,7 @@ export async function getCurrentWinStreak() {
  * RR is recalculated using actual exit
  * prices after the edit.
  */
+
 export async function updatePartialExit(
   input: {
     id: string
@@ -1610,43 +1609,39 @@ export async function updatePartialExit(
 ) {
   try {
     const partial =
-      await prisma.tradePartial.update(
-        {
-          where: {
-            id: input.id,
-          },
+      await prisma.tradePartial.update({
+        where: {
+          id: input.id,
+        },
 
-          data: {
-            quantity:
-              input.quantity,
+        data: {
+          quantity:
+            input.quantity,
 
-            exitPrice:
-              input.exitPrice,
+          exitPrice:
+            input.exitPrice,
 
-            profitLoss:
-              input.profitLoss,
-          },
+          profitLoss:
+            input.profitLoss,
+        },
 
-          include: {
-            trade: true,
-          },
-        }
-      )
+        include: {
+          trade: true,
+        },
+      })
 
     const allPartials =
-      await prisma.tradePartial.findMany(
-        {
-          where: {
-            tradeId:
-              partial.tradeId,
-          },
+      await prisma.tradePartial.findMany({
+        where: {
+          tradeId:
+            partial.tradeId,
+        },
 
-          orderBy: {
-            exitDate:
-              'asc',
-          },
-        }
-      )
+        orderBy: {
+          exitDate:
+            'asc',
+        },
+      })
 
     let remaining =
       partial.trade.quantity
@@ -1660,21 +1655,19 @@ export async function updatePartialExit(
       totalPnl +=
         p.profitLoss ?? 0
 
-      await prisma.tradePartial.update(
-        {
-          where: {
-            id: p.id,
-          },
+      await prisma.tradePartial.update({
+        where: {
+          id: p.id,
+        },
 
-          data: {
-            remainingQuantity:
-              Math.max(
-                remaining,
-                0
-              ),
-          },
-        }
-      )
+        data: {
+          remainingQuantity:
+            Math.max(
+              remaining,
+              0
+            ),
+        },
+      })
     }
 
     const actualExitPrices =
@@ -1695,24 +1688,22 @@ export async function updatePartialExit(
     }
 
     const riskReward =
-      calculateAchievedRiskReward(
-        {
-          direction:
-            partial.trade
-              .direction,
+      calculateAchievedRiskReward({
+        direction:
+          partial.trade
+            .direction,
 
-          entryPrice:
-            partial.trade
-              .entryPrice,
+        entryPrice:
+          partial.trade
+            .entryPrice,
 
-          stopLoss:
-            partial.trade
-              .stopLoss,
+        stopLoss:
+          partial.trade
+            .stopLoss,
 
-          exitPrices:
-            actualExitPrices,
-        }
-      )
+        exitPrices:
+          actualExitPrices,
+      })
 
     await prisma.trade.update({
       where: {
