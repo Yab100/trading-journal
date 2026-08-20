@@ -6,6 +6,8 @@ type StrategyOption = {
   name: string
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function NewTradePage() {
   const strategies = await prisma.strategy.findMany({
     orderBy: {
