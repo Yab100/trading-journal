@@ -37,6 +37,8 @@ interface Props {
   }>
 }
 
+type Trade = Awaited<ReturnType<typeof getTrades>>[number]
+
 export default async function TradesPage({
   searchParams,
 }: Props) {
@@ -55,8 +57,7 @@ export default async function TradesPage({
 
   return (
     <div className="p-6 space-y-6">
-
-      {/* Header */}
+      {/* HEADER */}
 
       <div className="flex items-center justify-between">
         <div>
@@ -96,22 +97,17 @@ export default async function TradesPage({
         </Dialog>
       </div>
 
-      {/* Filters */}
+      {/* FILTERS */}
 
       <TradeFilters strategies={strategies} />
 
-      {/* Table */}
+      {/* TABLE */}
 
       <div className="rounded-xl border border-border bg-card shadow-sm">
-
         <div className="overflow-x-auto">
-
           <Table className="min-w-[1350px]">
-
             <TableHeader className="sticky top-0 bg-muted/30 backdrop-blur supports-[backdrop-filter]:bg-muted/20">
-
               <TableRow>
-
                 <TableHead className="uppercase text-xs tracking-wider">
                   Date
                 </TableHead>
@@ -151,68 +147,66 @@ export default async function TradesPage({
                 <TableHead className="w-[150px] text-right">
                   Actions
                 </TableHead>
-
               </TableRow>
-
             </TableHeader>
 
             <TableBody>
-
               {trades.length === 0 ? (
-
                 <TableRow>
-
                   <TableCell
                     colSpan={13}
                     className="h-40 text-center text-muted-foreground"
                   >
                     No trades found.
                   </TableCell>
-
                 </TableRow>
-
               ) : (
-
-                trades.map((trade) => {
-
+                trades.map((trade: Trade) => {
                   const isBuy = trade.type === 'BUY'
                   const isOpen = trade.status === 'OPEN'
 
-                  const pnlVal = Number(trade.pnl) || 0
+                  const pnlVal =
+                    Number(trade.pnl) || 0
+
                   const isWin = pnlVal > 0
 
-                  const formattedDate = new Date(
-                    trade.entry_date
-                  ).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })
+                  const formattedDate =
+                    new Date(
+                      trade.entry_date
+                    ).toLocaleDateString(
+                      'en-US',
+                      {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      }
+                    )
 
                   return (
-
                     <TableRow
                       key={trade.id}
                       className="border-border transition-colors hover:bg-accent/30"
                     >
+                      {/* DATE */}
 
                       <TableCell className="text-xs text-muted-foreground">
                         {formattedDate}
                       </TableCell>
 
-                      <TableCell className="font-semibold">
+                      {/* SYMBOL */}
 
+                      <TableCell className="font-semibold">
                         <Link
                           href={`/trades/${trade.id}`}
                           className="hover:text-primary hover:underline"
                         >
                           {trade.symbol}
                         </Link>
-
                       </TableCell>
 
-                      <TableCell>
+                      {/* DIRECTION */}
 
+                      <TableCell>
                         <Badge
                           variant="outline"
                           className={
@@ -223,32 +217,45 @@ export default async function TradesPage({
                         >
                           {trade.type}
                         </Badge>
-
                       </TableCell>
+
+                      {/* TIMEFRAME */}
 
                       <TableCell>
                         {trade.timeframe ?? '-'}
                       </TableCell>
 
+                      {/* STRATEGY */}
+
                       <TableCell>
                         {trade.strategy ?? '-'}
                       </TableCell>
+
+                      {/* ENTRY TYPE */}
 
                       <TableCell>
                         {trade.entryType ?? '-'}
                       </TableCell>
 
+                      {/* LOT SIZE */}
+
                       <TableCell className="text-right font-mono text-sm">
                         {trade.lot_size}
                       </TableCell>
+
+                      {/* ENTRY */}
 
                       <TableCell className="text-right font-mono text-sm">
                         {trade.entry_price}
                       </TableCell>
 
+                      {/* EXIT */}
+
                       <TableCell className="text-right font-mono text-sm text-muted-foreground">
                         {trade.exit_price ?? '-'}
                       </TableCell>
+
+                      {/* R:R */}
 
                       <TableCell className="text-right font-mono text-sm">
                         {trade.risk_reward
@@ -256,16 +263,14 @@ export default async function TradesPage({
                           : '-'}
                       </TableCell>
 
+                      {/* PNL */}
+
                       <TableCell className="text-right font-mono font-semibold">
-
                         {isOpen ? (
-
                           <span className="text-xs italic text-muted-foreground">
                             Open
                           </span>
-
                         ) : (
-
                           <span
                             className={
                               isWin
@@ -275,57 +280,51 @@ export default async function TradesPage({
                                   : ''
                             }
                           >
-                            {isWin ? '+' : ''}
-                            ${pnlVal.toFixed(2)}
+                            {isWin ? '+' : ''}$
+                            {pnlVal.toFixed(2)}
                           </span>
-
                         )}
-
                       </TableCell>
 
-                      <TableCell>
+                      {/* STATUS */}
 
+                      <TableCell>
                         <Badge
-                          variant={isOpen ? 'outline' : 'secondary'}
+                          variant={
+                            isOpen
+                              ? 'outline'
+                              : 'secondary'
+                          }
                           className="capitalize"
                         >
                           {trade.status.toLowerCase()}
                         </Badge>
-
                       </TableCell>
 
+                      {/* ACTIONS */}
+
                       <TableCell className="text-right">
-
                         <div className="flex justify-end gap-2">
-
                           {isOpen && (
-                            <CloseTradeDialog trade={trade} />
+                            <CloseTradeDialog
+                              trade={trade}
+                            />
                           )}
 
                           <DeleteTradeDialog
                             tradeId={trade.id}
                             symbol={trade.symbol}
                           />
-
                         </div>
-
                       </TableCell>
-
                     </TableRow>
-
                   )
                 })
-
               )}
-
             </TableBody>
-
           </Table>
-
         </div>
-
       </div>
-
     </div>
   )
 }
