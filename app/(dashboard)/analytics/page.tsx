@@ -35,16 +35,6 @@ type PerformanceStat = {
   losses: number
 }
 
-// type AnalyticsTrade = {
-//   status: string
-//   pnl: number | undefined
-//   symbol: string
-//   strategy?: string
-//   entryType?: string
-//   timeframe?: string
-//   type: 'BUY' | 'SELL'
-//   entry_date: string
-// }
 
 export default async function AnalyticsPage() {
   const trades = await getTrades()
