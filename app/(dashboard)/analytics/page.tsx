@@ -35,14 +35,23 @@ type PerformanceStat = {
   losses: number
 }
 
+type AnalyticsTrade = {
+  status: string
+  pnl: number | undefined
+  symbol: string
+  strategy?: string
+  entryType?: string
+  timeframe?: string
+  type: 'BUY' | 'SELL'
+  entry_date: string
+}
 
 export default async function AnalyticsPage() {
   const trades = await getTrades()
 
-  const closedTrades = trades.filter(
-    (t: Awaited<ReturnType<typeof getTrades>>[number]) =>
-     t.status !== 'OPEN'
-
+  
+  const closedTrades: AnalyticsTrade[] = trades.filter(
+    (t: AnalyticsTrade) => t.status !== 'OPEN'
   )
 
   // ============================================================
