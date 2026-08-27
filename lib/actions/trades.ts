@@ -515,7 +515,49 @@ export async function getTrades(
 // DASHBOARD STATS
 // ============================================================
 
-export async function getDashboardStats() {
+type DashboardStats = {
+  totalTrades: number
+  openTrades: number
+  closedTradesCount: number
+  winningTrades: number
+  totalPnl: number
+  winRate: number
+  avgRiskReward: number
+
+  bestStrategy: {
+    name: string
+    trades: number
+    wins: number
+    pnl: number
+  } | null
+
+  bestEntryType: [
+    string,
+    {
+      trades: number
+      wins: number
+      pnl: number
+    }
+  ] | null
+
+  strategyStats: {
+    name: string
+    trades: number
+    wins: number
+    pnl: number
+  }[]
+
+  entryTypeStats: [
+    string,
+    {
+      trades: number
+      wins: number
+      pnl: number
+    }
+  ][]
+}
+
+export async function getDashboardStats(): Promise<DashboardStats | null> {
   const supabase =
     await createClient()
 
@@ -526,7 +568,7 @@ export async function getDashboardStats() {
 
   if (!user) {
     console.log('GET TRADES: NO AUTHENTICATED USER')
-    return []
+    return null
   }
 
   console.log('GET TRADES: AUTHENTICATED USER FOUND')
