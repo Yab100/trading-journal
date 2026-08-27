@@ -446,8 +446,11 @@ export async function getTrades(
     await supabase.auth.getUser()
 
   if (!user) {
+    console.log('GET TRADES: NO AUTHENTICATED USER')
     return []
   }
+
+  console.log('GET TRADES: AUTHENTICATED USER FOUND')
 
   const trades =
     await prisma.trade.findMany({
@@ -522,11 +525,14 @@ export async function getDashboardStats() {
     await supabase.auth.getUser()
 
   if (!user) {
-    return null
+    console.log('GET TRADES: NO AUTHENTICATED USER')
+    return []
   }
 
+  console.log('GET TRADES: AUTHENTICATED USER FOUND')
+
   const trades =
-    await prisma.trade.findMany({
+    await prisma.trade.findMany({  
       where: {
         userId: user.id,
       },
@@ -541,6 +547,12 @@ export async function getDashboardStats() {
         },
       },
     })
+
+    console.log(
+        'GET TRADES: DATABASE RETURNED',
+        trades.length,
+        'TRADES'
+    )
 
   const mappedTrades: MappedTrade[] =
     trades.map(mapTradeRecord)

@@ -8,31 +8,25 @@ export async function login(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
-  let redirectPath: string | null = null
+  const supabase = await createClient()
 
-  try {
-    const supabase = await createClient()
-
-    const { error } = await supabase.auth.signInWithPassword({
+  const { error } =
+    await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
-    if (error) {
-      redirectPath = `/login?error=${encodeURIComponent(error.message)}`
-    } else {
-      redirectPath = '/trades'
-    }
-  } catch (err: unknown) {
-    console.error('Login Error:', err)
-    redirectPath = `/login?error=${encodeURIComponent('Could not connect to Supabase. Check your .env.local variables.')}`
+  if (error) {
+    redirect(
+      `/login?error=${encodeURIComponent(
+        error.message
+      )}`
+    )
   }
 
-  // Perform revalidation and redirect OUTSIDE the try/catch block
-  if (redirectPath) {
-    revalidatePath('/', 'layout')
-    redirect(redirectPath)
-  }
+  revalidatePath('/', 'layout')
+
+  redirect('/trades')
 }
 
 export async function signup(formData: FormData) {
