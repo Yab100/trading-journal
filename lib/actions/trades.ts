@@ -332,8 +332,9 @@ export async function createTrade(
             input.session ?? null,
 
           entryType:
-            (input.entryType ??
-              null) as any,
+            input.entryType && input.entryType.trim() !== ''
+              ? (input.entryType as any)
+              : null,
 
           entryPrice:
             input.entryPrice,
