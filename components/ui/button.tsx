@@ -44,8 +44,9 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  asChild, // Destructured to prevent leaking to DOM
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
   return (
     <ButtonPrimitive
       data-slot="button"

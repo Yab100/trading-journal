@@ -1,13 +1,154 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["public"]
+}
+
+model Profile {
+  id         String         @id
+  username   String?
+  createdAt  DateTime       @default(now())
+  journals   JournalEntry[]
+  strategies Strategy[]
+  trades     Trade[]
+
+  @@schema("public")
+}
+
+model Trade {
+  id                String            @id @default(uuid())
+  userId            String
+  symbol            String
+  market            String?
+  timeframe         String?
+  session           String?
+  direction         TradeDirection
+  entryType         EntryType?
+  entryPrice        Float
+  exitPrice         Float?
+  stopLoss          Float
+  takeProfit        Float?
+  quantity          Float
+  riskAmount        Float?
+  profitLoss        Float?
+  riskReward        Float?
+  status            TradeStatus       @default(OPEN)
+  entryDate         DateTime          @default(now())
+  exitDate          DateTime?
+  notes             String?
+  strategyId        String?
+  discipline_rating Int?
+  execution_rating  Int?
+  emotions          String[]          @default([])
+  createdAt         DateTime          @default(now())
+  remainingQuantity Float?
+  strategy          Strategy?         @relation(fields: [strategyId], references: [id])
+  user              Profile           @relation(fields: [userId], references: [id])
+  partials          TradePartial[]
+  screenshots       TradeScreenshot[]
+
+  @@schema("public")
+}
+
+model TradePartial {
+  id                String   @id @default(cuid())
+  tradeId           String
+  quantity          Float
+  remainingQuantity Float
+  exitPrice         Float
+  profitLoss        Float
+  exitDate          DateTime @default(now())
+  createdAt         DateTime @default(now())
+  trade             Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+model Strategy {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  userId      String
+  createdAt   DateTime @default(now())
+  user        Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades      Trade[]
+
+  @@schema("public")
+}
+
+model JournalEntry {
+  id      String   @id @default(uuid())
+  userId  String
+  title   String
+  content String
+  date    DateTime @default(now())
+  user    Profile  @relation(fields: [userId], references: [id])
+
+  @@schema("public")
+}
+
+model TradeScreenshot {
+  id        String           @id @default(cuid())
+  tradeId   String
+  phase     ScreenshotPhase?
+  timeframe String?
+  url       String
+  createdAt DateTime         @default(now())
+  trade     Trade            @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+enum TradeDirection {
+  LONG
+  SHORT
+
+  @@schema("public")
+}
+
+enum TradeStatus {
+  OPEN
+  WIN
+  LOSS
+  BREAKEVEN
+  CLOSED
+
+  @@schema("public")
+}
+
+enum Market {
+  FOREX
+  CRYPTO
+  STOCKS
+  INDICES
+  FUTURES
+
+  @@schema("public")
+}
+
+enum Session {
+  ASIA
+  LONDON
+  NEW_YORK
+  OVERLAP
+
+  @@schema("public")
+}
+
+enum EntryType {
+  FLIP
+  BREAK_CURRENT_HL
+  BREAK_PREVIOUS_HL
+
+  @@schema("public")
+}
+
+enum ScreenshotPhase {
+  ENTRY
+  EXIT
+
+  @@schema("public")
 }

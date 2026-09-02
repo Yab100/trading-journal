@@ -5,6 +5,7 @@ const menuItems = [
   { name: "Trades", href: "/trades" },
   { name: "Analytics", href: "/analytics" },
   { name: "Calendar", href: "/calendar" },
+  { name: 'Strategies',  href: '/strategies'},
   { name: "Psychology", href: "/psychology" },
   { name: "Settings", href: "/settings" },
 ];
