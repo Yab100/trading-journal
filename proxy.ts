@@ -13,8 +13,16 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+  // Supabase must be configured.
+  // Do not silently bypass authentication.
   if (!supabaseUrl || !supabaseKey) {
-    return response
+    console.error(
+      'Missing Supabase environment variables in proxy.ts'
+    )
+
+    return NextResponse.redirect(
+      new URL('/login', request.url)
+    )
   }
 
   const supabase = createServerClient(
@@ -77,8 +85,9 @@ export async function proxy(request: NextRequest) {
     pathname === '/signup' ||
     pathname.startsWith('/auth')
 
-  // Require login everywhere except
-  // authentication routes.
+  // User is NOT logged in.
+  // Everything except authentication pages
+  // requires login.
   if (!user && !isAuthPage) {
     const url =
       request.nextUrl.clone()
@@ -88,8 +97,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Don't let an authenticated user
-  // return to login/signup.
+  // User IS logged in.
+  // Don't allow them to return to login/signup.
   if (
     user &&
     (pathname === '/login' ||

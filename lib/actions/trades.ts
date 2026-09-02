@@ -1155,6 +1155,8 @@ export interface UpdateTradeInput {
 
   entryDate?: Date
 
+  quantity: number
+
   symbol: string
   direction: 'LONG' | 'SHORT'
 
@@ -1192,6 +1194,7 @@ export async function updateTrade(
         include: {
           partials: {
             select: {
+              quantity: true,
               exitPrice: true,
             },
           },
@@ -1201,24 +1204,25 @@ export async function updateTrade(
     if (!existingTrade) {
       return {
         success: false,
-        error:
-          'Trade not found',
+        error: 'Trade not found',
       }
     }
+
+    // --------------------------------------------------
+    // Calculate actual exit prices for achieved R:R
+    // --------------------------------------------------
 
     const actualExitPrices =
       existingTrade.partials.map(
         (partial: {
+          quantity: number
           exitPrice: number
-        }) =>
-          partial.exitPrice
+        }) => partial.exitPrice
       )
 
-    // Also consider the actual
-    // trade exit price.
+    // Also consider the actual trade exit price.
     if (
-      existingTrade.exitPrice !==
-      null
+      existingTrade.exitPrice !== null
     ) {
       actualExitPrices.push(
         existingTrade.exitPrice
@@ -1227,18 +1231,58 @@ export async function updateTrade(
 
     const riskReward =
       calculateAchievedRiskReward({
-        direction:
-          input.direction,
-
-        entryPrice:
-          input.entryPrice,
-
-        stopLoss:
-          input.stopLoss,
-
-        exitPrices:
-          actualExitPrices,
+        direction: input.direction,
+        entryPrice: input.entryPrice,
+        stopLoss: input.stopLoss,
+        exitPrices: actualExitPrices,
       })
+
+    // --------------------------------------------------
+    // Calculate remaining quantity
+    // --------------------------------------------------
+
+    const newQuantity =
+      Number(input.quantity)
+
+    if (
+      !Number.isFinite(newQuantity) ||
+      newQuantity <= 0
+    ) {
+      return {
+        success: false,
+        error: 'Lot size must be greater than 0',
+      }
+    }
+
+    const exitedQuantity =
+      existingTrade.partials.reduce(
+        (
+          total: number,
+          partial: { quantity: number }
+        ) =>
+          total + Number(partial.quantity),
+        0
+      )
+
+    if (
+      newQuantity < exitedQuantity
+    ) {
+      return {
+        success: false,
+        error:
+          `Lot size cannot be smaller than the quantity already exited (${exitedQuantity}).`,
+      }
+    }
+
+    const newRemainingQuantity =
+      Math.max(
+        0,
+        newQuantity - exitedQuantity
+      )
+
+    // --------------------------------------------------
+    // Update trade
+    // --------------------------------------------------
 
     await prisma.trade.update({
       where: {
@@ -1256,7 +1300,10 @@ export async function updateTrade(
           input.timeframe,
 
         entryType:
-          input.entryType as any,
+          input.entryType &&
+          input.entryType.trim() !== ''
+            ? (input.entryType as any)
+            : null,
 
         entryPrice:
           input.entryPrice,
@@ -1276,15 +1323,19 @@ export async function updateTrade(
         notes:
           input.notes,
 
+        quantity:
+          newQuantity,
+
+        remainingQuantity:
+          newRemainingQuantity,
+
         riskReward,
       },
     })
 
     revalidatePath('/')
 
-    revalidatePath(
-      '/trades'
-    )
+    revalidatePath('/trades')
 
     revalidatePath(
       `/trades/${input.tradeId}`
@@ -1294,7 +1345,10 @@ export async function updateTrade(
       success: true,
     }
   } catch (error) {
-    console.error(error)
+    console.error(
+      'Update Trade Error:',
+      error
+    )
 
     return {
       success: false,

@@ -32,7 +32,7 @@ export function EditTradeForm({
     quantity: trade.lot_size,
 
     timeframe: trade.timeframe || 'M15',
-    entryType: trade.entryType || 'MARKET',
+    entryType: trade.entryType || '',
 
     entryPrice: trade.entry_price,
     stopLoss: trade.stop_loss,
@@ -62,6 +62,8 @@ export function EditTradeForm({
 
         symbol: formData.symbol ?? '',
         direction: formData.direction ?? 'LONG',
+
+        quantity: Number(formData.quantity),
 
         timeframe: formData.timeframe,
         entryType: formData.entryType,
@@ -115,7 +117,7 @@ export function EditTradeForm({
         formData={formData}
         setFormData={setFormData}
         strategies={strategies}
-        showQuantity={false}
+        showQuantity={true}
       />
 
       <div>
